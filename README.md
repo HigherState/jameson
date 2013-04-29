@@ -21,28 +21,28 @@ you can then define your own parser validation
 
 ##Key validator pairs
 
-Jameson supports parser validators against key value pairs, these are of the form
-"key" -> validator  		if the key is not required
-"key" ->> validator 		if the key is required
-"key" -> "newKey" -> validator	if the key is not required and maps with a new key
-"key" -> "newKey" ->> validator	if the key is required and maps with a new key
+Jameson supports parser validators against key value pairs, these are of the form  
+"key" -> validator  		if the key is not required  
+"key" ->> validator 		if the key is required  
+"key" -> "newKey" -> validator	if the key is not required and maps with a new key  
+"key" -> "newKey" ->> validator	if the key is required and maps with a new key  
 
-The following validators are supported out of the box.
-AsBool		-validates and parses to Boolean
-AsByte		-validates and parses to Byte
-AsShort		-validates and parses to Short
-AsInt		-validates and parses to Integer
-AsLong		-validates and parses to Long
-AsFloat		-validates and parses to Float
-AsDouble	-validates and parses to Double
-AsChar		-validates and parser to Char
-AsString	-validates and parses to String
-AsNull		-validates and parses to null
-#* #! #^	-these validate and parse to Map[String,Any]
-||		-validates and parses to a List
-жж              -validates and parses to a TraversableOnce
-?		-validates and parses to Some(value) or None if null is found
-><		-validates and parses to Either
+The following validators are supported out of the box.  
+AsBool		-validates and parses to Boolean  
+AsByte		-validates and parses to Byte  
+AsShort		-validates and parses to Short  
+AsInt		-validates and parses to Integer  
+AsLong		-validates and parses to Long  
+AsFloat		-validates and parses to Float  
+AsDouble	-validates and parses to Double  
+AsChar		-validates and parser to Char  
+AsString	-validates and parses to String  
+AsNull		-validates and parses to null  
+\#* \#! \#^	-these validate and parse to Map[String,Any]  
+||			-validates and parses to a List  
+жж			-validates and parses to a TraversableOnce  
+?			-validates and parses to Some(value) or None if null is found  
+><			-validates and parses to Either  
 
 
 ## Map dsl parser/validators
