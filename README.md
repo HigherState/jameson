@@ -42,7 +42,7 @@ AsString	-validates and parses to String
 AsNull		-validates and parses to null  
 \#* \#! \#^	-these validate and parse to Map[String,Any]  
 ||			-validates and parses to a List  
-��			-validates and parses to a TraversableOnce  
+¦¦			-validates and parses to a TraversableOnce  
 ?			-validates and parses to Some(value) or None if null is found  
 \><			-validates and parses to Either  
 /			-validates against a matched parser
