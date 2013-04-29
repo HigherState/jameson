@@ -49,16 +49,34 @@ AsNull		-validates and parses to null
 
 ## Map dsl parser/validators
 
-Open map parser:  This will parse a json object and will map any key:value pair, whether it has been 
+#### Open map parser  \#*  
+This will parse a json object and will map any key:value pair, whether it has been 
 explicit validated against or not.
 
 ```scala
-    val parser = #* //This will simply map all object content to a Map[String,Any]
-    val parser = #*("a" -> AsInt) //This will validate that the key 'a' maps to an Integer
-    val parser = #*("a" -> AsString, "b" -> AsDouble) //This will validate that the key 'a' maps to a String and the key 'b' maps to a double 
-    val parser = #*("a" ->> AsBool) //This will validate that the key 'a' maps to a Boolean and that 'a' is required
-    val parser = #*("a" -> #*("b" -> AsFloat) //This will validate that the key 'a' maps to a map which if it has the key 'b' will map to a float 
+val parser = #* //This will simply map all object content to a Map[String,Any]
+val parser = #*("a" -> AsInt) //This will validate that the key 'a' maps to an Integer
+val parser = #*("a" -> AsString, "b" -> AsDouble) //This will validate that the key 'a' maps to a String and the key 'b' maps to a double 
+val parser = #*("a" ->> AsBool) //This will validate that the key 'a' maps to a Boolean and that 'a' is required
+val parser = #*("a" -> #*("b" -> AsFloat) //This will validate that the key 'a' maps to a map which if it has the key 'b' will map to a float 
+```
 
+####Closed map parser \#!
+This will parse a json object and will map only those key:value pairs which have been explicitly validated.
+If any other key value pairs are found, validation will fail.
+
+```scala
+val parser = #!("a" -> AsInt) //This will validate that the key 'a' maps to an Integer and there are no other keys, a is not required
+val parser = #!("a" ->> AsBool) //This will validate that the key 'a' maps to a Boolean, there are no other keys and that 'a' is required
+```
+
+####Drop map parser \#*
+This will parse a json object and will map only those key:value pairs which have been explicitly validated.
+If any other key value pairs are found, they will be ignored.
+
+```scala
+val parser = #^("a" -> AsInt) //This will validate that the key 'a' maps to an Integer, a is not required
+```
 
 [Jackson]: http://jackson.codehaus.org/
 [Scala]: http://www.scala-lang.org/
