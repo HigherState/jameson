@@ -49,15 +49,14 @@ AsDouble	-validates and parses to Double
 AsChar		-validates and parser to Char  
 AsString	-validates and parses to String  
 AsNull		-validates and parses to null 
->>          -validates against a class
 \#* \#! \#^	-these validate and parse to Map[String,Any]  
 ||			-validates and parses to a List  
 ¦¦			-validates and parses to a TraversableOnce  
 ?			-validates and parses to Some(value) or None if null is found  
 \><			-validates and parses to Either  
-/			-validates against a key value pair matched parser
-r           -validates against a regex
-
+/			-validates against a key value pair matched parser  
+r           -validates against a regex  
+\>>          -validates against a class  
 
 ## Dsl parser/validators
 
@@ -103,9 +102,26 @@ val parser = ||(#*) //This will validate the json is a list of (open) Maps
 ####TraversableOnce parser ¦¦
 This will parse a json array to a TraversableOnce[Try[?]].  The type of the return TraversableOnce Try values will match the type of any parser argument, 
 or will be Any if no parser argument is provided.  If there is a Failure value in the TraversableOnce, there will be no
-more elements.
+more elements.  The TraversableOnce parser should be a top level parser only.
 
+```scala
+val parser = ¦¦ //This will validate that the  json is a list
+val parser = ¦¦(AsString) //This will validate the json is a list of strings 
+val parser = ¦¦(||) //This will validate the json is a list of List[Any]
+```
 
+####Option and OrElse Parser ?
+This will parse to a Some(value) if the value is not null, otherwise it will parse to None.  If a default value is specified
+then this will either return a the value or the default value if null was found.
+*When used in a Map parser, if the key is not found and the validator is required (->>) then it will substitute a None.*
+*When used in a Class parser, if the key is not found, then it will substitute a None*
+
+```scala
+val parser = ? //No validation
+val parser = ?("empty") //No validation, if null, replaces with "empty"
+val parser = ?(AsInt) //validate is null or Int
+val parser = ?(AsDouble, 1.5) //validates is null or double
+```
 
 
 [Jackson]: http://jackson.codehaus.org/
