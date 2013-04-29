@@ -28,8 +28,8 @@ Jameson supports parser validators against key value pairs, these are of the for
 "key" -> "newKey" ->> validator	if the key is required and maps with a new key  
 
 The following validators are supported out of the box.  
-AsBool		-validates and parses to Boolean  
-AsByte		-validates and parses to Byte  
+|AsBool		|-validates and parses to Boolean  
+|AsByte		|-validates and parses to Byte  
 AsShort		-validates and parses to Short  
 AsInt		-validates and parses to Integer  
 AsLong		-validates and parses to Long  
