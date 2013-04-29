@@ -40,6 +40,9 @@ class DslValuesSpec extends Specification{
     "supports key renaming with required" in {
       #*("tBool" -> "nBool" ->> AsBool)(json) mustEqual Success(map - "tBool" + ("nBool" -> false))
     }
+    "supports required ? with key not found" in {
+      #*("tFloat" ->> ?(AsFloat))(json) mustEqual Success(map + ("tFloat" -> None))
+    }
   }
 
   "Closed Map Parser" should {

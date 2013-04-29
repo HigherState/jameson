@@ -3,6 +3,7 @@ package org.higherstate.jameson
 import org.higherstate.jameson.parsers._
 import org.higherstate.jameson.extractors._
 import reflect.runtime.universe._
+import scala.util.matching.Regex
 
 object Dsl {
 
@@ -52,6 +53,7 @@ object Dsl {
     DropMapParser((selectors :+ selector).map(s => s.key -> s).toMap)
 
   object ? extends DefaultOptionParser {
+    def apply(orElse:Any) = DefaultOrElseParser(orElse)
     def apply[U](parser:Parser[U]) = OptionParser(parser)
     def apply[U](parser:Parser[U], orElse:U) = OrElseParser(parser, orElse)
   }
@@ -70,6 +72,11 @@ object Dsl {
   def >>[T <: AnyRef](selectors:Selector[String, _]*)(implicit registry:Registry, typeTag:TypeTag[T]) = {
     ClassParser[T](selectors.toList, registry)
   }
+
+  def r(regex:String) = RegexValidationParser(regex.r, "Invalid string format.")
+  def r(regex:String, message:String) = RegexValidationParser(regex.r, message)
+  def r(regex:Regex) = RegexValidationParser(regex, "Invalid string format.")
+  def r(regex:Regex, message:String) = RegexValidationParser(regex, message)
 
   object AsAny extends AnyParser
   object AsBool extends BooleanParser
