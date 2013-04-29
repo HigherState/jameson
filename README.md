@@ -15,6 +15,12 @@ To use Jameson simply include a reference to the Dsl
 
 ```scala
     import org.higherState.jameson.Dsl._
+    
+    val mapParser = #*("Age" -> ?(AsInt), "Email" -> r("""\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}\b"""), "Name" -> "First Name" -> AsString)    
+    val map:Map[String:Any] = mapParser("""{"Age":3,"Email":"test@jameson.com","Name":"John"}""")
+    
+    val classParser = /("type", "dog" -> >>[Canine], "cat" -> >>[Feline]")
+    val pet:Pet = classParser("""{"type":"dog","name":"rufus","age":3}""")
 ```
 
 you can then define your own parser validation
@@ -39,15 +45,18 @@ AsFloat		-validates and parses to Float
 AsDouble	-validates and parses to Double  
 AsChar		-validates and parser to Char  
 AsString	-validates and parses to String  
-AsNull		-validates and parses to null  
+AsNull		-validates and parses to null 
+>>          -validates against a class
 \#* \#! \#^	-these validate and parse to Map[String,Any]  
 ||			-validates and parses to a List  
 ¦¦			-validates and parses to a TraversableOnce  
 ?			-validates and parses to Some(value) or None if null is found  
 \><			-validates and parses to Either  
 /			-validates against a matched parser
+r           -validates against a regex
 
-## Map dsl parser/validators
+
+## Dsl parser/validators
 
 #### Open map parser  \#*  
 This will parse a json object and will map any key:value pair, whether it has been 
@@ -77,6 +86,16 @@ If any other key value pairs are found, they will be ignored.
 ```scala
 val parser = #^("a" -> AsInt) //This will validate that the key 'a' maps to an Integer, a is not required
 ```
+
+####List parser ||
+This will parse a json array to a List.
+
+```scala
+val parser = || //This will validate that the  json is a list
+val parser = ||(AsString) //This will validate the json is a list of strings 
+val parser = ||(#*) //This will validate the json is a list of (open) Maps
+```
+
 
 [Jackson]: http://jackson.codehaus.org/
 [Scala]: http://www.scala-lang.org/
