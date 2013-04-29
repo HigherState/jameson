@@ -6,21 +6,24 @@ well as deserializing a stream into a TraversableOnce, it further supports Optio
 Jameson will can deserialize into case classes and nested case classes. It is fully design to support 
 custom extension.
 
+Jameson parse returns a scala.util.Try object.  It will stop parsing on the first failure.
+
 Jameson's DSL supports validation on any nested value as well as conditional deserialization 
 and validation depending on key value matches. Jameson also supports key substitution.
 
 # Usage
 
-To use Jameson simply include a reference to the Dsl
+To use Jameson simply include a reference to the Dsl to create your own parser validators.
 
 ```scala
     import org.higherState.jameson.Dsl._
     
     val mapParser = #*("Age" -> ?(AsInt), "Email" -> r("""\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}\b"""), "Name" -> "First Name" -> AsString)    
-    val map:Map[String:Any] = mapParser("""{"Age":3,"Email":"test@jameson.com","Name":"John"}""")
+    val map:Success(Map[String:Any]) = mapParser("""{"Age":3,"Email":"test@jameson.com","Name":"John"}""")
     
-    val classParser = /("type", "dog" -> >>[Canine], "cat" -> >>[Feline]")
-    val pet:Pet = classParser("""{"type":"dog","name":"rufus","age":3}""")
+    //case class Canine(age:Int, name:String) extends Pet
+    val classParser = /("type", "dog" -> >>[Canine], "cat" -> >>[Feline])
+    val pet:Success(Pet) = classParser("""{"type":"dog","name":"rufus","age":3}""")
 ```
 
 you can then define your own parser validation
@@ -52,7 +55,7 @@ AsNull		-validates and parses to null
 ¦¦			-validates and parses to a TraversableOnce  
 ?			-validates and parses to Some(value) or None if null is found  
 \><			-validates and parses to Either  
-/			-validates against a matched parser
+/			-validates against a key value pair matched parser
 r           -validates against a regex
 
 
@@ -60,7 +63,7 @@ r           -validates against a regex
 
 #### Open map parser  \#*  
 This will parse a json object and will map any key:value pair, whether it has been 
-explicit validated against or not.
+explicit validated against or not.  Parsing will return a Try[Map[String,Any]] object
 
 ```scala
 val parser = #* //This will simply map all object content to a Map[String,Any]
@@ -72,7 +75,7 @@ val parser = #*("a" -> #*("b" -> AsFloat) //This will validate that the key 'a' 
 
 ####Closed map parser \#!
 This will parse a json object and will map only those key:value pairs which have been explicitly validated.
-If any other key value pairs are found, validation will fail.
+If any other key value pairs are found, validation will fail.  Parsing will return a Try[Map[String,Any]] object
 
 ```scala
 val parser = #!("a" -> AsInt) //This will validate that the key 'a' maps to an Integer and there are no other keys, a is not required
@@ -81,20 +84,28 @@ val parser = #!("a" ->> AsBool) //This will validate that the key 'a' maps to a 
 
 ####Drop map parser \#*
 This will parse a json object and will map only those key:value pairs which have been explicitly validated.
-If any other key value pairs are found, they will be ignored.
+If any other key value pairs are found, they will be ignored.  Parsing will return a Try[Map[String,Any]] object
 
 ```scala
 val parser = #^("a" -> AsInt) //This will validate that the key 'a' maps to an Integer, a is not required
 ```
 
 ####List parser ||
-This will parse a json array to a List.
+This will parse a json array to a Try[List[?]].  The type of the return List will match the type of any parser argument, 
+or will be Any if no parser argument is provided
 
 ```scala
 val parser = || //This will validate that the  json is a list
 val parser = ||(AsString) //This will validate the json is a list of strings 
 val parser = ||(#*) //This will validate the json is a list of (open) Maps
 ```
+
+####TraversableOnce parser ¦¦
+This will parse a json array to a TraversableOnce[Try[?]].  The type of the return TraversableOnce Try values will match the type of any parser argument, 
+or will be Any if no parser argument is provided.  If there is a Failure value in the TraversableOnce, there will be no
+more elements.
+
+
 
 
 [Jackson]: http://jackson.codehaus.org/
