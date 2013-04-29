@@ -22,15 +22,16 @@ you can then define your own parser validation
 ##Key validator pairs
 
 Jameson supports parser validators against key value pairs, these are of the form  
-"key" -> validator  		if the key is not required  
-"key" ->> validator 		if the key is required  
-"key" -> "newKey" -> validator	if the key is not required and maps with a new key  
-"key" -> "newKey" ->> validator	if the key is required and maps with a new key  
+"key" -> validator  			-if the key is not required  
+"key" ->> validator 			-if the key is required  
+"key" -> "newKey" -> validator	-if the key is not required and maps with a new key  
+"key" -> "newKey" ->> validator	-if the key is required and maps with a new key  
 
 The following validators are supported out of the box.  
-|AsBool		|-validates and parses to Boolean  
-|AsByte		|-validates and parses to Byte  
-AsShort		-validates and parses to Short  
+| ---------  | --------------------------------------------------------------|
+| AsBool     | validates and parses to Boolean  
+| AsByte	 | validates and parses to Byte  
+| AsShort	 | validates and parses to Short  
 AsInt		-validates and parses to Integer  
 AsLong		-validates and parses to Long  
 AsFloat		-validates and parses to Float  
@@ -42,8 +43,8 @@ AsNull		-validates and parses to null
 ||			-validates and parses to a List  
 ¦¦			-validates and parses to a TraversableOnce  
 ?			-validates and parses to Some(value) or None if null is found  
-><			-validates and parses to Either  
-
+\><			-validates and parses to Either  
+/			-validates against a matched parser
 
 ## Map dsl parser/validators
 
@@ -51,7 +52,7 @@ Open map parser:  This will parse a json object and will map any key:value pair,
 explicit validated against or not.
 
 ```scala
-    val parser = #* //This will simple map all object content to a Map[String,Any]
+    val parser = #* //This will simply map all object content to a Map[String,Any]
     val parser = #*("a" -> AsInt) //This will validate that the key 'a' maps to an Integer
     val parser = #*("a" -> AsString, "b" -> AsDouble) //This will validate that the key 'a' maps to a String and the key 'b' maps to a double 
     val parser = #*("a" ->> AsBool) //This will validate that the key 'a' maps to a Boolean and that 'a' is required
