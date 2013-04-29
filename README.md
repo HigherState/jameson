@@ -28,10 +28,10 @@ Jameson supports parser validators against key value pairs, these are of the for
 "key" -> "newKey" ->> validator	-if the key is required and maps with a new key  
 
 The following validators are supported out of the box.  
-| ---------  | --------------------------------------------------------------|
+| ---------- | --------------------------------------------------------------|
 | AsBool     | validates and parses to Boolean  
-| AsByte	 | validates and parses to Byte  
-| AsShort	 | validates and parses to Short  
+| AsByte     | validates and parses to Byte  
+| AsShort    | validates and parses to Short  
 AsInt		-validates and parses to Integer  
 AsLong		-validates and parses to Long  
 AsFloat		-validates and parses to Float  
@@ -41,7 +41,7 @@ AsString	-validates and parses to String
 AsNull		-validates and parses to null  
 \#* \#! \#^	-these validate and parse to Map[String,Any]  
 ||			-validates and parses to a List  
-¦¦			-validates and parses to a TraversableOnce  
+ï¿½ï¿½			-validates and parses to a TraversableOnce  
 ?			-validates and parses to Some(value) or None if null is found  
 \><			-validates and parses to Either  
 /			-validates against a matched parser
