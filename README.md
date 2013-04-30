@@ -112,9 +112,9 @@ val parser = ¦¦(||) //This will validate the json is a list of List[Any]
 
 ####Option and OrElse Parser ?
 This will parse to a Some(value) if the value is not null, otherwise it will parse to None.  If a default value is specified
-then this will either return a the value or the default value if null was found.
-*When used in a Map parser, if the key is not found and the validator is required (->>) then it will substitute a None.*
-*When used in a Class parser, if the key is not found, then it will substitute a None*
+then this will either return a the value or the default value if null was found.  
+*When used in a Map parser, if the key is not found and the validator is required (->>) then it will substitute a None, or default value.*
+*When used in a Class parser, if the key is not found, then it will substitute a None, or default value*
 
 ```scala
 val parser = ? //No validation
