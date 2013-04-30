@@ -81,7 +81,7 @@ val parser = #!("a" -> AsInt) //This will validate that the key 'a' maps to an I
 val parser = #!("a" ->> AsBool) //This will validate that the key 'a' maps to a Boolean, there are no other keys and that 'a' is required
 ```
 
-####Drop map parser \#*
+####Drop map parser \#^
 This will parse a json object and will map only those key:value pairs which have been explicitly validated.
 If any other key value pairs are found, they will be ignored.  Parsing will return a Try[Map[String,Any]] object
 
