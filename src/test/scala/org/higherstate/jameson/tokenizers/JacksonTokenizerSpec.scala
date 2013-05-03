@@ -6,14 +6,44 @@ import com.fasterxml.jackson.core.JsonFactory
 
 class JacksonTokenizerSpec extends Specification{
 
-  "JacksonTokenizer" should {
-    "breakdown valid json map into an iterable" in {
-      val json = """{"one":1, "null":null, "true":true,"two":2.0,"text":"text","array":[1,2,3],"map":{"value":false}}"""
-      val jsonFactory = new JsonFactory()
-      val jp = jsonFactory.createJsonParser(json)
-      val r = JacksonTokenizer(jp).toList
-      r.head mustEqual (Success(ObjectStartToken))
-      r.last mustEqual (Success(ObjectEndToken))
+  "Jackson tokenizer should" should {
+    "Begin with first token" in {
+      JacksonTokenizer("3").head mustEqual(LongToken(3))
+      JacksonTokenizer("""{"key":"value"""").head mustEqual(ObjectStartToken)
+    }
+    "process key value tokens correctly" in {
+      val jt = JacksonTokenizer("{\"key\":\"value\",\"key2\":[2,3,{\"key3\":{\"key4\":false}}]}")
+      jt.head mustEqual(ObjectStartToken)
+      jt.moveNext().head mustEqual(KeyToken("key"))
+      jt.moveNext().head mustEqual(StringToken("value"))
+      jt.moveNext().head mustEqual(KeyToken("key2"))
+      jt.moveNext().head mustEqual(ArrayStartToken)
+      jt.moveNext().head mustEqual(LongToken(2))
+      jt.moveNext().head mustEqual(LongToken(3))
+      jt.moveNext().head mustEqual(ObjectStartToken)
+      jt.moveNext().head mustEqual(KeyToken("key3"))
+      jt.moveNext().head mustEqual(ObjectStartToken)
+      jt.moveNext().head mustEqual(KeyToken("key4"))
+      jt.moveNext().head mustEqual(BooleanToken(false))
+      jt.moveNext().head mustEqual(ObjectEndToken)
+      jt.moveNext().head mustEqual(ObjectEndToken)
+      jt.moveNext().head mustEqual(ArrayEndToken)
+      jt.moveNext().head mustEqual(ObjectEndToken)
+      jt.moveNext().head mustEqual(EndToken)
+    }
+
+    "support drop next" in {
+      val jt = JacksonTokenizer("{\"key\":\"value\",\"key2\":{\"key3\":false}, \"key4\":4, \"key5\":[1,2,{\"key6\":3}]}")
+      jt.head mustEqual(ObjectStartToken)
+      jt.moveNext().head mustEqual(KeyToken("key"))
+      jt.moveNext().head mustEqual(StringToken("value"))
+      jt.moveNext().head mustEqual(KeyToken("key2"))
+      jt.dropNext().head mustEqual(KeyToken("key4"))
+      jt.moveNext().head mustEqual(LongToken(4))
+      jt.moveNext().head mustEqual(KeyToken("key5"))
+      jt.dropNext()
+      jt.head mustEqual(ObjectEndToken)
+      jt.moveNext().head mustEqual(EndToken)
     }
   }
 }

@@ -6,10 +6,10 @@ import org.higherstate.jameson.Path
 import org.higherstate.jameson.tokenizers._
 
 case object ShortParser extends Parser[Short] {
-  def parse(tokenizer:Tokenizer, path: Path) = tokenizer match {
-    case LongToken(value) -: tail    =>
-      if (value.toShort == value) Success(value.toShort -> tail)
+  def parse(tokenizer:Tokenizer, path: Path) = tokenizer.head match {
+    case LongToken(value) =>
+      if (value.toShort == value) Success(value.toShort)
       else Failure(UnexpectedValueException("Expected a short value", value, path))
-    case token -: tail               => Failure(UnexpectedTokenException("Expected long token", token, path))
+    case token            => Failure(UnexpectedTokenException("Expected long token", token, path))
   }
 }

@@ -6,8 +6,8 @@ import org.higherstate.jameson.tokenizers._
 
 case class OrElseParser[T](parser:Parser[T], default:T) extends Parser[T] with HasDefault[T] {
 
-  def parse(tokenizer:Tokenizer, path:Path): Try[(T, Tokenizer)] = tokenizer match {
-    case NullToken -: tail => Success(default -> tail)
-    case tokenizer         => parser.parse(tokenizer, path)
+  def parse(tokenizer:Tokenizer, path:Path) = tokenizer.head match {
+    case NullToken => Success(default)
+    case _         => parser.parse(tokenizer, path)
   }
 }

@@ -6,7 +6,7 @@ import org.higherstate.jameson.{Registry, Path}
 import org.higherstate.jameson.tokenizers._
 
 case class AnyParser(registry:Registry) extends Parser[Any] {
-  def parse(tokenizer:Tokenizer, path:Path): Try[(Any, Tokenizer)] = tokenizer.head match {
+  def parse(tokenizer:Tokenizer, path:Path): Try[Any] = tokenizer.head match {
     case s:StringToken    => registry.defaultTextParser.parse(tokenizer, path)
     case ObjectStartToken => registry.defaultObjectParser.parse(tokenizer, path)
     case ArrayStartToken  => registry.defaultArrayParser.parse(tokenizer, path)

@@ -6,10 +6,13 @@ import org.higherstate.jameson.Path
 import org.higherstate.jameson.tokenizers._
 
 case object FloatParser extends Parser[Float] {
-  def parse(tokenizer:Tokenizer, path: Path) = tokenizer match {
-    case DoubleToken(value) -: tail =>
-      if (value.toFloat == value) Success(value.toFloat -> tail)
+  def parse(tokenizer:Tokenizer, path: Path) = tokenizer.head match {
+    case DoubleToken(value) =>
+      if (value.toFloat == value) Success(value.toFloat)
       else Failure(UnexpectedValueException("expected float value", value, path))
-    case token -: tail              => Failure(UnexpectedTokenException("Expected double token", token, path))
+    case LongToken(value)   =>
+      if (value.toFloat == value) Success(value.toFloat)
+      else Failure(UnexpectedValueException("expected float value", value, path))
+    case token              => Failure(UnexpectedTokenException("Expected double token", token, path))
   }
 }

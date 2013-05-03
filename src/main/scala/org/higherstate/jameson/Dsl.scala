@@ -1,7 +1,6 @@
 package org.higherstate.jameson
 
 import org.higherstate.jameson.parsers._
-import org.higherstate.jameson.extractors._
 import reflect.runtime.universe._
 import scala.util.matching.Regex
 
@@ -32,18 +31,21 @@ object Dsl {
     def replaceKey = None
   }
 
-  object || extends ListParserLike {
-    def apply[T](implicit registry:Registry, typeTag:TypeTag[T]) = NestedListParser[T](registry[T])
-    def apply[T](parser:Parser[T])(implicit registry:Registry, typeTag:TypeTag[T]) = NestedListParser[T](parser)
+  object || {
+    def apply()(implicit registry:Registry) = ListParser[Any](registry.defaultUnknownParser)
+    def apply[T](implicit registry:Registry, typeTag:TypeTag[T]) = ListParser(registry[T])
+    def apply[T](parser:Parser[T])(implicit registry:Registry, typeTag:TypeTag[T]) = ListParser[T](parser)
   }
 
-  object #* extends MapParserLike {
-    def apply(selectors:Selector[String, _]*) = OpenMapParser(selectors.map(s => s.key -> s).toMap)
+  object #* {
+    def apply()(implicit registry:Registry) = MapParser[Any](registry.defaultUnknownParser)
+    def apply(selectors:Selector[String, _]*)(implicit registry:Registry) = OpenMapParser(selectors.map(s => s.key -> s).toMap, registry.defaultUnknownParser)
   }
 
-  object ¦¦ extends TraversableOnceParserLike {
-    def apply[T](implicit registry:Registry, typeTag:TypeTag[T])  = NestedTraversableOnceParser[T](registry[T])
-    def apply[T](parser:Parser[T])(implicit registry:Registry, typeTag:TypeTag[T]) = NestedTraversableOnceParser(parser)
+  object ¦¦ {
+    def apply()(implicit registry:Registry) = TraversableOnceParser[Any](registry.defaultUnknownParser)
+    def apply[T](implicit registry:Registry, typeTag:TypeTag[T]) = TraversableOnceParser[T](registry[T])
+    def apply[T](parser:Parser[T])(implicit registry:Registry, typeTag:TypeTag[T]) = TraversableOnceParser(parser)
   }
 
   def #!(selector:Selector[String, _], selectors:Selector[String, _]*) =
@@ -52,20 +54,27 @@ object Dsl {
   def #^(selector:Selector[String, _], selectors:Selector[String, _]*) =
     DropMapParser((selectors :+ selector).map(s => s.key -> s).toMap)
 
-  object ? extends DefaultOptionParser {
-    def apply(orElse:Any) = DefaultOrElseParser(orElse)
+  object ? {
+    def apply()(implicit registry:Registry) = OptionParser(registry.defaultUnknownParser)
+    def apply(orElse:Any)(implicit registry:Registry) = OrElseParser(registry.defaultUnknownParser, orElse)
     def apply[U](parser:Parser[U]) = OptionParser(parser)
     def apply[U](parser:Parser[U], orElse:U) = OrElseParser(parser, orElse)
   }
 
-  def ><[T,U](leftParser:Extractor[_, T], rightParser:Extractor[_, U]) = EitherParser(leftParser,rightParser)
+  def ><[T,U](leftParser:Parser[T], rightParser:Parser[U]) = EitherParser(leftParser, rightParser)
 
   //maybe defaults should be extractors...
   def /[T, U](key:String, selectors:Selector[T, U]*)(implicit registry:Registry, typeTag:TypeTag[T]) =
-    MatchParser(key, true, registry[T].asInstanceOf[Extractor[_, T]], selectors.map(p => p.key -> p.parser.asInstanceOf[KeyValuePairsExtractor[U]]).toMap)
+    MatchParser(key, registry[T], None, selectors.map(p => p.key -> p.parser).toMap)
 
-  def /[U](key:String, classes:ClassParser[_]*)(implicit registry:Registry) =
-    MatchParser(key, true, registry[String].asInstanceOf[Extractor[_, String]], classes.map(p => p.getClassName -> p.asInstanceOf[KeyValuePairsExtractor[U]]).toMap)
+  def /[U](key:String, classes:ClassParser[U]*)(implicit registry:Registry) =
+    MatchParser(key, registry[String], None, classes.map(p => p.getClassName -> p).toMap)
+
+  def /[T, U](key:String, default:T, selectors:Selector[T, U]*)(implicit registry:Registry, typeTag:TypeTag[T]) =
+    MatchParser(key, registry[T], Some(default), selectors.map(p => p.key -> p.parser).toMap)
+
+  def /[U](key:String, default:String, classes:ClassParser[U]*)(implicit registry:Registry) =
+    MatchParser(key, registry[String], Some(default), classes.map(p => p.getClassName -> p).toMap)
 
   def >>[T <: AnyRef](implicit registry:Registry, typeTag:TypeTag[T]) = ClassParser[T](Nil, registry)
 
@@ -73,21 +82,23 @@ object Dsl {
     ClassParser[T](selectors.toList, registry)
   }
 
+  def |>[T,U](parser:Parser[T], func:T => U) = FunctionParser(parser, func)
+
   def r(regex:String) = RegexValidationParser(regex.r, "Invalid string format.")
   def r(regex:String, message:String) = RegexValidationParser(regex.r, message)
   def r(regex:Regex) = RegexValidationParser(regex, "Invalid string format.")
   def r(regex:Regex, message:String) = RegexValidationParser(regex, message)
 
-  object AsAny extends AnyParser
-  object AsBool extends BooleanParser
-  object AsByte extends ByteParser
-  object AsChar extends CharParser
-  object AsDouble extends DoubleParser
-  object AsFloat extends FloatParser
-  object AsInt extends IntParser
-  object AsLong extends LongParser
-  object AsNull extends NullParser
-  object AsShort extends ShortParser
-  object AsString extends StringParser
-  object AsUUID extends UUIDParser
+  def AsAny(implicit registry:Registry) = AnyParser(registry)
+  val AsBool = BooleanParser
+  val AsByte = ByteParser
+  val AsChar = CharParser
+  val AsDouble = DoubleParser
+  val AsFloat = FloatParser
+  val AsInt = IntParser
+  val AsLong = LongParser
+  val AsNull = NullParser
+  val AsShort = ShortParser
+  val AsString = StringParser
+  val AsUUID = UUIDParser
 }

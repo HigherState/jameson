@@ -6,9 +6,9 @@ import org.higherstate.jameson.tokenizers._
 import org.higherstate.jameson.exceptions.UnexpectedTokenException
 
 case object BooleanParser extends Parser[Boolean] {
-  def parse(tokenizer:Tokenizer, path: Path) = tokenizer match {
-    case BooleanToken(value) -: tail => Success(value -> tail)
-    case token -: tail               => Failure(UnexpectedTokenException("Expected boolean token", token, path))
+  def parse(tokenizer:Tokenizer, path: Path) = tokenizer.head match {
+    case BooleanToken(value) => Success(value)
+    case token               => Failure(UnexpectedTokenException("Expected boolean token", token, path))
   }
 }
 

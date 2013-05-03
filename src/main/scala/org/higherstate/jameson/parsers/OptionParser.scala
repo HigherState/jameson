@@ -7,9 +7,9 @@ import org.higherstate.jameson.tokenizers._
 
 case class OptionParser[T](parser:Parser[T]) extends Parser[Option[T]] with HasDefault[Option[T]] {
 
-  def parse(tokenizer:Tokenizer, path:Path): Try[(Option[T], Tokenizer)] = tokenizer match {
-    case NullToken -: tail => Success(None -> tail)
-    case tokenizer         => parser.parse(tokenizer, path).map(_.mapLeft(Some(_)))
+  def parse(tokenizer:Tokenizer, path:Path) = tokenizer.head match {
+    case NullToken => Success(None)
+    case _         => parser.parse(tokenizer, path).map(Some(_))
   }
 
   def default = None

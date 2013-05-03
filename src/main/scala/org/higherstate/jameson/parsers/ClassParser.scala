@@ -3,12 +3,11 @@ package org.higherstate.jameson.parsers
 import reflect.runtime.universe._
 import util.{Failure, Success, Try}
 import reflect.runtime._
-import org.higherstate.jameson.Extensions._
 import org.higherstate.jameson.exceptions.{UnexpectedTokenException, ClassKeysNotFoundException, InvalidClassArgsException}
 import org.higherstate.jameson.{Selector, Registry, Path}
 import org.higherstate.jameson.tokenizers._
 
-case class ClassParser[T:TypeTag](selectors:List[Selector[String,_]], registry:Registry) extends Parser[T] {
+case class ClassParser[+T:TypeTag](selectors:List[Selector[String,_]], registry:Registry) extends Parser[T] {
 
   def getClassName = typeOf[T].typeSymbol.asType.name.toString
   private val constr = typeOf[T].typeSymbol.typeSignature.members.filter(_.isMethod).map(_.asMethod).filter(_.isConstructor).head
@@ -21,28 +20,35 @@ case class ClassParser[T:TypeTag](selectors:List[Selector[String,_]], registry:R
     case _:NullaryMethodType    => Map.empty
   }
 
-  def parse(tokenizer:Tokenizer, path: Path): Try[T] = tokenizer match {
-    case ObjectStartToken -: tail => {
+  private val hasDefaults = selectors.exists(_.parser.isInstanceOf[HasDefault[_]])
+
+  def parse(tokenizer:Tokenizer, path: Path): Try[T] = tokenizer.head match {
+    case ObjectStartToken => {
       val args = new Array[Any](arguments.size)
-      buildArgs(tail, args, path).flatMap{ case (found, tokenizer) =>
-        if (found.size < args.size) Failure(ClassKeysNotFoundException(typeOf[T].typeSymbol.asType, arguments.filter(i => !found.contains(i._2._2)).map(_._1).toList, path))
+      buildArgs(tokenizer.moveNext(), args, path).flatMap { found =>
+        val diff = args.size - found.size
+        if (diff > 0 && (!hasDefaults || (arguments collect { case (key, (p:HasDefault[_], i)) if !found.contains(i) => {args(i) = p.default; i}}).size < diff))
+          Failure(ClassKeysNotFoundException(typeOf[T].typeSymbol.asType, arguments.filter(i => !found.contains(i._2._2)).map(_._1).toList, path))
         else Try(currentMirror.reflectClass(typeOf[T].typeSymbol.asClass).reflectConstructor(constr).apply(args:_*).asInstanceOf[T]).orElse(Failure(InvalidClassArgsException(path)))
       }
     }
-    case token -: _             => Failure(UnexpectedTokenException("Expected object start token", token, path))
+    case token            => Failure(UnexpectedTokenException("Expected object start token", token, path))
   }
 
-  def buildArgs(tokenizer:Tokenizer, args:Array[Any], path:Path): Try[(List[Any], Tokenizer)] = tokenizer match {
-    case KeyToken(key) -: tail  => arguments.get(key).map(p => p._1.parse(tail, path + key).flatMap { case (r, tokenizer) =>
+  private def buildArgs(tokenizer:Tokenizer, args:Array[Any], path:Path): Try[List[Int]] = tokenizer.head match {
+    case KeyToken(key)  => arguments.get(key).map(p => p._1.parse(tokenizer.moveNext(), path + key).flatMap { r =>
       args(p._2) = r
-      buildArgs(tokenizer, args, path).map(_.mapLeft(p._2 :: _))
-    }).getOrElse(buildArgs(tail, args, path))
-    case ObjectEndToken -: tail => Success(Nil -> tail)
-    case token -: _             => Failure(UnexpectedTokenException("Expected key or Object end token", token, path))
+      buildArgs(tokenizer.moveNext, args, path).map(p._2 :: _)
+    }).getOrElse{
+      registry.defaultUnknownParser.parse(tokenizer.moveNext(), path + key) //TODO, implement content skipper to move on tokenizer
+      buildArgs(tokenizer.moveNext(), args, path)
+    }
+    case ObjectEndToken => Success(Nil)
+    case token          => Failure(UnexpectedTokenException("Expected key or Object end token", token, path))
   }
 }
 
-case class EmbeddedClassParser(typeSymbol:TypeSymbol, registry:Registry) extends Parser[AnyRef] {
+case class EmbeddedClassParser(typeSymbol:TypeSymbol, registry:Registry) extends Parser[Any] {
 
   val constr = typeSymbol.typeSignature.members.filter(_.isMethod).map(_.asMethod).filter(_.isConstructor).head
   val arguments:Map[String, (Parser[_], Int)] = constr.typeSignature match {
@@ -52,21 +58,26 @@ case class EmbeddedClassParser(typeSymbol:TypeSymbol, registry:Registry) extends
     case _:NullaryMethodType    => Map.empty
   }
 
-  protected def parse(value: TraversableOnce[Try[(String, Tokenizer)]], path: Path)(implicit registry: Registry): Try[AnyRef] = {
-    val args = new Array[Any](arguments.size)
-    var found:List[Int] = Nil
-    value.foreach {
-      case Success((key, parser)) => arguments.get(key).map(p => p._1(parser,path) match {
-        case Success(v)   => {
-          found = (p._2 :: found)
-          args(p._2) = v
-        }
-        case f:Failure[_] => return f.asInstanceOf[Failure[AnyRef]]
-      })
-      case f:Failure[_]           => return f.asInstanceOf[Failure[AnyRef]]
+  def parse(tokenizer:Tokenizer, path: Path): Try[Any] = tokenizer.head match {
+    case ObjectStartToken => {
+      val args = new Array[Any](arguments.size)
+      buildArgs(tokenizer.moveNext, args, path).flatMap { found =>
+        if (found.size < args.size) Failure(ClassKeysNotFoundException(typeSymbol, arguments.filter(i => !found.contains(i._2._2)).map(_._1).toList, path))
+        else Try(currentMirror.reflectClass(typeSymbol.asClass).reflectConstructor(constr).apply(args:_*)).orElse(Failure(InvalidClassArgsException(path)))
+      }
     }
+    case token            => Failure(UnexpectedTokenException("Expected object start token", token, path))
+  }
 
-    if (found.size < args.size) Failure(ClassKeysNotFoundException(typeSymbol, arguments.filter(i => !found.contains(i._2._2)).map(_._1).toList, path))
-    else Try(currentMirror.reflectClass(typeSymbol.asClass).reflectConstructor(constr).apply(args:_*).asInstanceOf[AnyRef]).orElse(Failure(InvalidClassArgsException(path)))
+  def buildArgs(tokenizer:Tokenizer, args:Array[Any], path:Path): Try[List[Any]] = tokenizer.head match {
+    case KeyToken(key)  => arguments.get(key).map(p => p._1.parse(tokenizer.moveNext(), path + key).flatMap { r =>
+      args(p._2) = r
+      buildArgs(tokenizer.moveNext(), args, path).map(p._2 :: _)
+    }).getOrElse{
+      registry.defaultUnknownParser.parse(tokenizer.moveNext(), path + key) //TODO, implement content skipper to move on tokenizer
+      buildArgs(tokenizer.moveNext, args, path)
+    }
+    case ObjectEndToken => Success(Nil)
+    case token          => Failure(UnexpectedTokenException("Expected key or Object end token", token, path))
   }
 }

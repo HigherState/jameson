@@ -22,4 +22,4 @@ case class DoubleToken(value:Double) extends AnyVal with ValueToken
 case class StringToken(value:String) extends AnyVal with ValueToken
 case class BooleanToken(value:Boolean) extends AnyVal with ValueToken
 
-case class BadToken(exception:Throwable) extends Token
+case class BadToken(exception:Throwable) extends AnyVal with Token

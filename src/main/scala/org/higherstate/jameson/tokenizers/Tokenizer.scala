@@ -1,19 +1,64 @@
 package org.higherstate.jameson.tokenizers
 
-object -: {
-  def unapply(tokenizer:Tokenizer) = Some(tokenizer.head -> tokenizer.tail)
-
-}
+import org.higherstate.jameson.exceptions.UnexpectedTokenException
+import org.higherstate.jameson.NoPath
 
 trait Tokenizer {
-  def head: Token
-  def tail: Tokenizer
-  def -:(head:Token):Tokenizer = TokenizerInstance(head, this)
+  def head:Token
+  def moveNext():Tokenizer
+  def toBufferingTokenizer() = BufferingTokenizer(this)
+
+  def dropNext():Tokenizer = this.moveNext.drop()
+
+  private def drop():Tokenizer = this.head match {
+    case (token:BadToken) => this
+    case ArrayStartToken  => {
+      this.moveNext()
+      while(head != ArrayEndToken) drop()
+      this.moveNext()
+    }
+    case ObjectStartToken => {
+      this.moveNext()
+      while(head != ObjectEndToken) moveNext().drop()
+      this.moveNext()
+    }
+    case ArrayEndToken    => FailedTokenizer(BadToken(UnexpectedTokenException("Unexpected token", ArrayEndToken, NoPath)))
+    case ObjectEndToken   => FailedTokenizer(BadToken(UnexpectedTokenException("Unexpected token", ObjectEndToken, NoPath)))
+    case token            => this.moveNext
+  }
 }
 
-private case class TokenizerInstance(head:Token, tail:Tokenizer) extends Tokenizer
+case class FailedTokenizer(head:BadToken) extends Tokenizer {
+  def moveNext() = this
+}
 
-object End extends Tokenizer {
-  def head = EndToken
-  def tail = End
+case class BufferingTokenizer(tokenizer:Tokenizer) extends Tokenizer {
+  private var buffer = List(tokenizer.head)
+  private var subBufferingTokenizer:Option[BufferingTokenizer] = None
+  def head = buffer.head
+  def moveNext() = {
+    buffer = tokenizer.moveNext.head :: buffer
+    this
+  }
+  override def toBufferingTokenizer() =
+    if (subBufferingTokenizer.nonEmpty) throw new Exception("Cannot buffer twice on the same buffered tokenizer")
+    else {
+      subBufferingTokenizer = Some(BufferingTokenizer(this))
+      subBufferingTokenizer.get
+    }
+
+  def toBufferedTokenizer():BufferedTokenizer = subBufferingTokenizer match {
+    case None     => BufferedTokenizer(buffer.reverse, tokenizer.moveNext)
+    //TODO must be a faster way here
+    case Some(bt) => BufferedTokenizer(buffer.reverse ++ bt.toBufferedTokenizer().buffer, tokenizer)
+  }
+}
+
+case class BufferedTokenizer(var buffer:List[Token], tokenizer:Tokenizer) extends Tokenizer {
+  def head = buffer.head
+  def moveNext() = {
+    buffer = buffer.tail
+    if (buffer.isEmpty) tokenizer
+    else this
+  }
 }

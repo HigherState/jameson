@@ -7,23 +7,24 @@ import org.higherstate.jameson.exceptions.UnexpectedTokenException
 
 case class TraversableOnceParser[T](parser:Parser[T]) extends Parser[TraversableOnce[Try[T]]] {
 
-  def parse(tokenizer:Tokenizer, path: Path): Try[(TraversableOnce[Try[T]], Tokenizer)] = tokenizer match {
-    case ArrayStartToken -: tail => Success(TokenIterator(parser, path, tokenizer) -> End)
-    case token  -: tail          => Failure(UnexpectedTokenException("Expected array start token", token, path))
+  def parse(tokenizer:Tokenizer, path: Path): Try[TraversableOnce[Try[T]]] = tokenizer.head match {
+    case ArrayStartToken  => Success(IteratorWrapper(tokenizer, parser, path))
+    case token            => Failure(UnexpectedTokenException("Expected array start token", token, path))
   }
 
-  private case class TokenIterator(parser:Parser[T], path:Path, var tokenizer:Tokenizer) extends Iterator[Try[T]]{
-    private var index = -1
-    private var failed = false
-    def hasNext = !failed && tokenizer.tail != End && tokenizer.tail.head != ArrayEndToken
-    def next() =
-      parser.parse(tokenizer.tail, path + index) match {
-        case Success((r, t)) => {
-          index += 1
-          tokenizer = t
-          Success(r)
-        }
-        case f => failed = true; f.asInstanceOf[Failure[T]]
-      }
+  private case class IteratorWrapper[T](tokenizer:Tokenizer, parser:Parser[T], path:Path) extends Iterator[Try[T]] {
+    var index = -1
+    var failed = false
+
+    def hasNext() = !failed && {
+      index += 1
+      val next = tokenizer.moveNext().head
+      next != ArrayEndToken && next != EndToken
+    }
+    def next() = {
+      val r = parser.parse(tokenizer, path + index)
+      if (r.isFailure) failed = true
+      r
+    }
   }
 }

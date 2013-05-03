@@ -6,9 +6,10 @@ import org.higherstate.jameson.tokenizers._
 import org.higherstate.jameson.exceptions.UnexpectedTokenException
 
 case object DoubleParser extends Parser[Double] {
-  def parse(tokenizer:Tokenizer, path: Path) = tokenizer match {
-    case DoubleToken(value) -: tail => Success(value -> tail)
-    case token -: tail               => Failure(UnexpectedTokenException("Expected double token", token, path))
+  def parse(tokenizer:Tokenizer, path: Path) = tokenizer.head match {
+    case DoubleToken(value) => Success(value)
+    case LongToken(value)   => Success(value)
+    case token              => Failure(UnexpectedTokenException("Expected double token", token, path))
   }
 }
 

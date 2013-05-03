@@ -6,9 +6,9 @@ import org.higherstate.jameson.Path
 import org.higherstate.jameson.tokenizers._
 
 case object LongParser extends Parser[Long] {
-  def parse(tokenizer:Tokenizer, path: Path) = tokenizer match {
-    case LongToken(value) -: tail    => Success(value -> tail)
-    case token -: tail               => Failure(UnexpectedTokenException("Expected int token", token, path))
+  def parse(tokenizer:Tokenizer, path: Path) = tokenizer.head match {
+    case LongToken(value) => Success(value)
+    case token            => Failure(UnexpectedTokenException("Expected int token", token, path))
   }
 }
 

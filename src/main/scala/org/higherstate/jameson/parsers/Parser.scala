@@ -1,17 +1,16 @@
 package org.higherstate.jameson.parsers
 
 import util.Try
-import com.fasterxml.jackson.core.JsonFactory
 import org.higherstate.jameson.tokenizers._
-import org.higherstate.jameson.{Registry, Path}
+import org.higherstate.jameson.Path
 
 trait Parser[+U] {
-  def parse(tokenizer:Tokenizer, path:Path):Try[(U, Tokenizer)]
+  def parse(tokenizer:Tokenizer, path:Path):Try[U]
 
-  def apply(jsonString:String)(implicit registry:Registry):Try[U] = {
-    val jsonFactory = new JsonFactory()
-    val jp = jsonFactory.createJsonParser(jsonString)
-    jp.nextToken
-    parse(JacksonTokenizer(StartToken, jp), Path).map(_._1)
+  def parse(jsonString:String):Try[U] = {
+    parse(JacksonTokenizer(jsonString), Path)
   }
+
+  def parse(map:java.util.Map[String, Any]):Tokenizer = JavaMapTokenizer(map)
+  def parse(array:Array[Any]):Tokenizer = JavaMapTokenizer(array)
 }
