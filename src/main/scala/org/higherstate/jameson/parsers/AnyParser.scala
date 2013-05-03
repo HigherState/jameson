@@ -1,20 +1,19 @@
 package org.higherstate.jameson.parsers
 
-import com.fasterxml.jackson.core.{JsonToken, JsonParser}
 import util.{Failure, Try}
 import org.higherstate.jameson.exceptions.UnexpectedTokenException
-import org.higherstate.jameson.{Registry, Path, Parser}
+import org.higherstate.jameson.{Registry, Path}
+import org.higherstate.jameson.tokenizers._
 
-case class AnyParser() extends Parser[Any] {
-  def apply(jsonParser:JsonParser, path:Path)(implicit registry:Registry): Try[Any] = (jsonParser.getCurrentToken match {
-    case JsonToken.VALUE_STRING                       => registry.defaultTextParser.apply(jsonParser, path)
-    case JsonToken.START_OBJECT                       => registry.defaultObjectParser.apply(jsonParser, path)
-    case JsonToken.START_ARRAY                        => registry.defaultArrayParser.apply(jsonParser, path)
-    case JsonToken.VALUE_NUMBER_INT                   => registry.defaultLongParser.apply(jsonParser, path)
-    case JsonToken.VALUE_NUMBER_FLOAT                 => registry.defaultDoubleParser.apply(jsonParser, path)
-    case JsonToken.VALUE_NULL                         => registry.defaultNullParser.apply(jsonParser, path)
-    case JsonToken.VALUE_TRUE | JsonToken.VALUE_FALSE => registry.defaultBooleanParser.apply(jsonParser, path)
-    case token                                        => Failure(UnexpectedTokenException("Unexpected token", path))
-  })
-
+case class AnyParser(registry:Registry) extends Parser[Any] {
+  def parse(tokenizer:Tokenizer, path:Path): Try[(Any, Tokenizer)] = tokenizer.head match {
+    case s:StringToken    => registry.defaultTextParser.parse(tokenizer, path)
+    case ObjectStartToken => registry.defaultObjectParser.parse(tokenizer, path)
+    case ArrayStartToken  => registry.defaultArrayParser.parse(tokenizer, path)
+    case l:LongToken      => registry.defaultLongParser.parse(tokenizer, path)
+    case d:DoubleToken    => registry.defaultDoubleParser.parse(tokenizer, path)
+    case NullToken        => registry.defaultNullParser.parse(tokenizer, path)
+    case b:BooleanToken   => registry.defaultBooleanParser.parse(tokenizer, path)
+    case token            => Failure(UnexpectedTokenException("Unexpected token", token, path))
+  }
 }

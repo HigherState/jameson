@@ -1,5 +1,7 @@
 package org.higherstate.jameson
 
+import org.higherstate.jameson.parsers.Parser
+
 trait Selector[U, +T] extends Any {
   def key:U
   def replaceKey:Option[U]

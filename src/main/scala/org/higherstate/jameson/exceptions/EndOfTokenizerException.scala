@@ -1,0 +1,3 @@
+package org.higherstate.jameson.exceptions
+
+object EndOfTokenizerException extends Throwable

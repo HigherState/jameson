@@ -1,14 +1,15 @@
 package org.higherstate.jameson.parsers
 
-import org.higherstate.jameson.extractors.NumericExtractor
-import util.{Success, Failure, Try}
-import org.higherstate.jameson.exceptions.UnexpectedTokenException
-import org.higherstate.jameson.{Registry, Path}
+import util.{Success, Failure}
+import org.higherstate.jameson.exceptions.{UnexpectedTokenException, UnexpectedValueException}
+import org.higherstate.jameson.Path
+import org.higherstate.jameson.tokenizers._
 
-case class FloatParser() extends NumericExtractor[Float] {
-   protected def parse(value: Double, path: Path)(implicit registry:Registry): Try[Float] =
-     Try(value.toFloat).flatMap { r =>
-       if (r != value) Failure(UnexpectedTokenException("Expected a float value", path))
-       else Success(r)
-     }
- }
+case object FloatParser extends Parser[Float] {
+  def parse(tokenizer:Tokenizer, path: Path) = tokenizer match {
+    case DoubleToken(value) -: tail =>
+      if (value.toFloat == value) Success(value.toFloat -> tail)
+      else Failure(UnexpectedValueException("expected float value", value, path))
+    case token -: tail              => Failure(UnexpectedTokenException("Expected double token", token, path))
+  }
+}

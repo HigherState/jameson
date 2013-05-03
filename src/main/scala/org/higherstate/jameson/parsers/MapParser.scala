@@ -1,22 +1,23 @@
 package org.higherstate.jameson.parsers
 
-import org.higherstate.jameson.extractors.KeyValuePairsExtractor
-import com.fasterxml.jackson.core.JsonParser
-import util.{Try, Success, Failure}
-import org.higherstate.jameson.{Registry, Path}
+import scala.util.{Failure, Try, Success}
+import org.higherstate.jameson.Extensions._
+import org.higherstate.jameson.Path
+import org.higherstate.jameson.tokenizers._
+import org.higherstate.jameson.exceptions.UnexpectedTokenException
 
-case object MapParser extends MapParserLike
-trait MapParserLike extends KeyValuePairsExtractor[Map[String,Any]] {
+case class MapParser[T](parser:Parser[T]) extends Parser[Map[String,T]] {
 
-  protected def parse(value: TraversableOnce[Try[(String, JsonParser)]], path: Path)(implicit registry:Registry): Try[Map[String, Any]] = {
-    Success(value.map {
-      case Success((key, parser)) => {
-        registry.defaultUnknownParser(parser, path + key) match {
-          case Success(v) => (key, v)
-          case f:Failure[_]  => return f.asInstanceOf[Failure[Map[String, Any]]]
-        }
-      }
-      case f:Failure[_]           => return f.asInstanceOf[Failure[Map[String, Any]]]
-    } toMap)
+  def parse(tokenizer:Tokenizer, path: Path): Try[(Map[String, T], Tokenizer)] = tokenizer match {
+    case ObjectStartToken -: tail => toMap(tail, path)
+    case token -: tail            => Failure(UnexpectedTokenException("Expected object start token", token, path))
+  }
+
+  protected def toMap(tokenizer:Tokenizer, path:Path):Try[(Map[String, T], Tokenizer)] = tokenizer match {
+    case ObjectEndToken -: tail => Success(Map.empty[String, T] -> tail)
+    case KeyToken(key) -: tail  => parser.parse(tail, path + key).flatMap {
+      case (result, tail) => toMap(tail, path).map(_.mapLeft(_ + (key -> result)))
+    }
+    case token -: tail => Failure(UnexpectedTokenException("Expected object end token or key token", token, path))
   }
 }

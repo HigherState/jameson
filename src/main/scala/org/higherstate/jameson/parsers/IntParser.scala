@@ -1,14 +1,15 @@
 package org.higherstate.jameson.parsers
 
-import org.higherstate.jameson.extractors.NumericExtractor
-import util.{Success, Failure, Try}
-import org.higherstate.jameson.exceptions.UnexpectedTokenException
-import org.higherstate.jameson.{Registry, Path}
+import util.{Success, Failure}
+import org.higherstate.jameson.exceptions.{UnexpectedTokenException, UnexpectedValueException}
+import org.higherstate.jameson.Path
+import org.higherstate.jameson.tokenizers._
 
-case class IntParser() extends NumericExtractor[Int] {
-  protected def parse(value: Double, path: Path)(implicit registry:Registry): Try[Int] =
-    Try(value.toInt).flatMap { r =>
-      if (r != value) Failure(UnexpectedTokenException("Expected an integer value", path))
-      else Success(r)
-    }
+case object IntParser extends Parser[Int] {
+  def parse(tokenizer:Tokenizer, path: Path) = tokenizer match {
+    case LongToken(value) -: tail    =>
+      if (value.toInt == value) Success(value.toInt -> tail)
+      else Failure(UnexpectedValueException("Expected an int value", value, path))
+    case token -: tail               => Failure(UnexpectedTokenException("Expected long token", token, path))
+  }
 }

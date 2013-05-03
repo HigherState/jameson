@@ -1,10 +1,14 @@
 package org.higherstate.jameson.parsers
 
-import org.higherstate.jameson.extractors.NumericExtractor
-import util.{Success, Try}
-import org.higherstate.jameson.{Registry, Path}
+import scala.util.{Failure, Success}
+import org.higherstate.jameson.Path
+import org.higherstate.jameson.tokenizers._
+import org.higherstate.jameson.exceptions.UnexpectedTokenException
 
-case class DoubleParser() extends NumericExtractor[Double] {
-  def parse(value:Double, path: Path)(implicit registry:Registry) = Success(value)
+case object DoubleParser extends Parser[Double] {
+  def parse(tokenizer:Tokenizer, path: Path) = tokenizer match {
+    case DoubleToken(value) -: tail => Success(value -> tail)
+    case token -: tail               => Failure(UnexpectedTokenException("Expected double token", token, path))
+  }
 }
 

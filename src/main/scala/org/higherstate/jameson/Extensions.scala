@@ -13,9 +13,18 @@ object Extensions {
   }
 
   implicit class FailureExt[T](val self:Try[T]) extends AnyVal {
-    def failureMap(function:Failure[T] => Failure[T]) = self match {
+    def failureMap(function:Throwable => Failure[T]) = self match {
       case s:Success[T] => s
-      case f:Failure[T] => function(f)
+      case Failure(t) => function(t)
     }
+  }
+
+  implicit class TupleExt[A,B](val a:(A,B)) extends AnyVal {
+    def mapLeft[X](f: A => X) = (f(a._1), a._2)
+    def mapRight[X](f: B => X) = (a._1, f(a._2))
+  }
+
+  implicit class OptionExt[T](val self: Option[T]) extends AnyVal {
+    def mapOrElse[U](map:T => U,orElse:U) = self.map(map).getOrElse(orElse)
   }
 }

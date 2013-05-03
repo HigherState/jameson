@@ -1,14 +1,16 @@
 package org.higherstate.jameson.parsers
 
-import org.higherstate.jameson.extractors.NumericExtractor
-import util.{Success, Failure, Try}
-import org.higherstate.jameson.exceptions.UnexpectedTokenException
-import org.higherstate.jameson.{Registry, Path}
+import util.{Success, Failure}
+import org.higherstate.jameson.exceptions.{UnexpectedTokenException, UnexpectedValueException}
+import org.higherstate.jameson.Path
+import org.higherstate.jameson.tokenizers._
 
-case class ByteParser() extends NumericExtractor[Byte] {
-  protected def parse(value: Double, path: Path)(implicit registry:Registry): Try[Byte] =
-    Try(value.toByte).flatMap { r =>
-      if (r != value) Failure(UnexpectedTokenException("Expected an integer value", path))
-      else Success(r)
-    }
+case object ByteParser extends Parser[Byte] {
+  def parse(tokenizer:Tokenizer, path: Path) = tokenizer match {
+    case LongToken(value) -: tail    =>
+      if (value.toByte == value) Success(value.toByte -> tail)
+      else Failure(UnexpectedValueException("Expected a byte value", value, path))
+    case token -: tail               => Failure(UnexpectedTokenException("Expected long token", token, path))
+  }
+
 }

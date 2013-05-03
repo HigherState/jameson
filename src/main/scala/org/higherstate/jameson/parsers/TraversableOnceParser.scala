@@ -1,20 +1,29 @@
 package org.higherstate.jameson.parsers
 
-import org.higherstate.jameson.Extensions._
-import org.higherstate.jameson.extractors.ValuesExtractor
 import util.{Failure, Success, Try}
-import com.fasterxml.jackson.core.JsonParser
-import org.higherstate.jameson.{Registry, Path}
+import org.higherstate.jameson.Path
+import org.higherstate.jameson.tokenizers._
+import org.higherstate.jameson.exceptions.UnexpectedTokenException
 
-case object TraversableOnceParser extends TraversableOnceParserLike
+case class TraversableOnceParser[T](parser:Parser[T]) extends Parser[TraversableOnce[Try[T]]] {
 
-trait TraversableOnceParserLike extends ValuesExtractor[TraversableOnce[Try[Any]]] {
+  def parse(tokenizer:Tokenizer, path: Path): Try[(TraversableOnce[Try[T]], Tokenizer)] = tokenizer match {
+    case ArrayStartToken -: tail => Success(TokenIterator(parser, path, tokenizer) -> End)
+    case token  -: tail          => Failure(UnexpectedTokenException("Expected array start token", token, path))
+  }
 
-  protected def parse(value: TraversableOnce[Try[JsonParser]], path: Path)(implicit registry:Registry): Try[TraversableOnce[Try[Any]]] = {
-    var i = -1
-    Success(value.toIterator.map {
-      case Success(parser) => registry.defaultUnknownParser(parser, path + {i += 1; i})
-      case f:Failure[_]    => f.asInstanceOf[Try[Any]]
-    }.takeWhileInclusive(_.isSuccess))
+  private case class TokenIterator(parser:Parser[T], path:Path, var tokenizer:Tokenizer) extends Iterator[Try[T]]{
+    private var index = -1
+    private var failed = false
+    def hasNext = !failed && tokenizer.tail != End && tokenizer.tail.head != ArrayEndToken
+    def next() =
+      parser.parse(tokenizer.tail, path + index) match {
+        case Success((r, t)) => {
+          index += 1
+          tokenizer = t
+          Success(r)
+        }
+        case f => failed = true; f.asInstanceOf[Failure[T]]
+      }
   }
 }

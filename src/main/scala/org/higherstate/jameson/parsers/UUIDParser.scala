@@ -1,15 +1,18 @@
 package org.higherstate.jameson.parsers
 
-import org.higherstate.jameson.extractors.StringExtractor
-import util.{Success, Failure, Try}
-import org.higherstate.jameson.exceptions.InvalidTokenException
+import util.{Success, Failure}
+import org.higherstate.jameson.exceptions.{UnexpectedTokenException, InvalidTokenException}
 import java.util.UUID
-import org.higherstate.jameson.{Registry, Path}
+import org.higherstate.jameson.Path
+import org.higherstate.jameson.tokenizers._
 
-case class UUIDParser() extends StringExtractor[UUID] {
+case object UUIDParser extends Parser[UUID] {
   private val uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}".r
 
-   protected def parse(value: String, path: Path)(implicit registry:Registry): Try[UUID] =
-     if (!uuidRegex.pattern.matcher(value).matches()) Failure(InvalidTokenException("String is not a Universally Unique Identifier", path))
-     else Success(UUID.fromString(value))
+  def parse(tokenizer:Tokenizer, path: Path) = tokenizer match {
+    case StringToken(value) -: tail =>
+      if (!uuidRegex.pattern.matcher(value).matches()) Failure(InvalidTokenException("String is not a Universally Unique Identifier", path))
+      else Success(UUID.fromString(value) -> tail)
+    case token -: tail              => Failure(UnexpectedTokenException("Expected String token", token, path))
+  }
  }

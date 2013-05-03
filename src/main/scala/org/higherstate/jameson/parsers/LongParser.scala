@@ -1,15 +1,14 @@
 package org.higherstate.jameson.parsers
 
-import org.higherstate.jameson.extractors.NumericExtractor
-import util.{Failure, Try, Success}
+import util.{Failure, Success}
 import org.higherstate.jameson.exceptions.UnexpectedTokenException
-import org.higherstate.jameson.{Registry, Path}
+import org.higherstate.jameson.Path
+import org.higherstate.jameson.tokenizers._
 
-case class LongParser() extends NumericExtractor[Long] {
-  def parse(value:Double, path: Path)(implicit registry:Registry) = {
-    val r = value.toLong
-    if (r != value) Failure(UnexpectedTokenException("Expected a long value", path))
-    else Success(r)
+case object LongParser extends Parser[Long] {
+  def parse(tokenizer:Tokenizer, path: Path) = tokenizer match {
+    case LongToken(value) -: tail    => Success(value -> tail)
+    case token -: tail               => Failure(UnexpectedTokenException("Expected int token", token, path))
   }
 }
 

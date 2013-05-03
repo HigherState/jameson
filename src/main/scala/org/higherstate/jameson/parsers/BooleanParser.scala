@@ -1,10 +1,14 @@
 package org.higherstate.jameson.parsers
 
-import org.higherstate.jameson.extractors.BooleanExtractor
-import util.{Success, Try}
-import org.higherstate.jameson.{Registry, Path}
+import scala.util.{Failure, Success}
+import org.higherstate.jameson.Path
+import org.higherstate.jameson.tokenizers._
+import org.higherstate.jameson.exceptions.UnexpectedTokenException
 
-case class BooleanParser() extends BooleanExtractor[Boolean] {
-  def parse(value:Boolean, path: Path)(implicit registry:Registry) = Success(value)
+case object BooleanParser extends Parser[Boolean] {
+  def parse(tokenizer:Tokenizer, path: Path) = tokenizer match {
+    case BooleanToken(value) -: tail => Success(value -> tail)
+    case token -: tail               => Failure(UnexpectedTokenException("Expected boolean token", token, path))
+  }
 }
 

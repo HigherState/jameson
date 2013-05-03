@@ -1,20 +1,13 @@
 package org.higherstate.jameson.parsers
 
 import util.{Success, Try}
-import com.fasterxml.jackson.core.{JsonToken, JsonParser}
-import org.higherstate.jameson.{Registry, Path, Parser}
+import org.higherstate.jameson.Path
+import org.higherstate.jameson.tokenizers._
 
 case class OrElseParser[T](parser:Parser[T], default:T) extends Parser[T] with HasDefault[T] {
 
-  def apply(jsonParser:JsonParser, path:Path)(implicit registry:Registry): Try[T] = jsonParser.getCurrentToken match {
-    case JsonToken.VALUE_NULL         => Success(default)
-    case _                            => parser(jsonParser, path)
-  }
-}
-
-case class DefaultOrElseParser(default:Any) extends Parser[Any] with HasDefault[Any]  {
-  def apply(jsonParser:JsonParser, path:Path)(implicit registry:Registry): Try[Any] = jsonParser.getCurrentToken match {
-    case JsonToken.VALUE_NULL         => Success(default)
-    case _                            => registry.defaultUnknownParser(jsonParser, path)
+  def parse(tokenizer:Tokenizer, path:Path): Try[(T, Tokenizer)] = tokenizer match {
+    case NullToken -: tail => Success(default -> tail)
+    case tokenizer         => parser.parse(tokenizer, path)
   }
 }

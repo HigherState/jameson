@@ -1,9 +1,13 @@
 package org.higherstate.jameson.parsers
 
-import org.higherstate.jameson.extractors.NullExtractor
-import util.{Success, Try}
-import org.higherstate.jameson.{Registry, Path}
+import scala.util.{Failure, Success, Try}
+import org.higherstate.jameson.Path
+import org.higherstate.jameson.tokenizers._
+import org.higherstate.jameson.exceptions.UnexpectedTokenException
 
-case class NullParser() extends NullExtractor[Null] {
-  protected def parse(value: Null, path: Path)(implicit registry:Registry): Try[Null] = Success(value)
+case object NullParser extends Parser[Null] {
+  def parse(tokenizer:Tokenizer, path: Path): Try[(Null, Tokenizer)] = tokenizer match {
+    case NullToken -: tail    => Success((null, tail))
+    case token -: tail        => Failure(UnexpectedTokenException("Expected int token", token, path))
+  }
 }

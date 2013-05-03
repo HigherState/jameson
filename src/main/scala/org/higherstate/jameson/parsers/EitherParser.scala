@@ -1,16 +1,14 @@
 package org.higherstate.jameson.parsers
 
 import util.Try
-import com.fasterxml.jackson.core.JsonParser
-import org.higherstate.jameson.extractors.Extractor
-import org.higherstate.jameson.{Registry, Path, Parser}
+import org.higherstate.jameson.Extensions._
+import org.higherstate.jameson.Path
+import org.higherstate.jameson.tokenizers.Tokenizer
 
-//Only supports eithers on single values otherwise need to buffer, to add.
-case class EitherParser[T, U](leftParser:Extractor[_, T], rightParser:Extractor[_, U]) extends Parser[Either[T,U]] {
+case class EitherParser[T, U](leftParser:Parser[T], rightParser:Parser[U]) extends Parser[Either[T,U]] {
 
-  def apply(jsonParser:JsonParser, path:Path)(implicit registry:Registry): Try[Either[T,U]] = {
-    val left = leftParser(jsonParser, path)
-    if (left.isSuccess) left.map(Left(_))
-    else rightParser(jsonParser, path).map(Right(_))
+  def parse(tokenizer:Tokenizer, path:Path): Try[(Either[T,U], Tokenizer)] = {
+    leftParser.parse(tokenizer, path).map(_.mapLeft(Left(_)))
+    .orElse(rightParser.parse(tokenizer, path).map(_.mapLeft(Right(_))))
   }
 }

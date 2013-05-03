@@ -1,6 +1,7 @@
 package org.higherstate.jameson
 
 import reflect.runtime.universe._
+import org.higherstate.jameson.parsers.Parser
 
 trait Registry {
 
