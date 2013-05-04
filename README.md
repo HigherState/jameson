@@ -18,14 +18,14 @@ and validation depending on key value matches. Jameson also supports key substit
 To use Jameson simply include a reference to the Dsl to create your own parser validators.
 
 ```scala
-    import org.higherState.jameson.Dsl._
+import org.higherState.jameson.Dsl._
     
-    val mapParser = #*("Age" -> ?(AsInt), "Email" -> r("""\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}\b"""), "Name" -> "First Name" -> AsString)    
-    val map:Success(Map[String:Any]) = mapParser("""{"Age":3,"Email":"test@jameson.com","Name":"John"}""")
+val mapParser = #*("Age" -> ?(AsInt), "Email" -> r("""\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}\b"""), "Name" -> "First Name" -> AsString)    
+val map:Success(Map[String:Any]) = mapParser("""{"Age":3,"Email":"test@jameson.com","Name":"John"}""")
     
-    //case class Canine(age:Int, name:String) extends Pet
-    val classParser = /("type", "dog" -> >>[Canine], "cat" -> >>[Feline])
-    val pet:Success(Pet) = classParser("""{"type":"dog","name":"rufus","age":3}""")
+//case class Canine(age:Int, name:String) extends Pet
+val classParser = /("type", "dog" -> >>[Canine], "cat" -> >>[Feline])
+val pet:Success(Pet) = classParser("""{"type":"dog","name":"rufus","age":3}""")
 ```
 
 you can then define your own parser validation
