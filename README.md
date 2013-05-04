@@ -166,8 +166,8 @@ val parser = /("type", "MyClass1", >>[MyClass1], >>[MyClass2])// if "type" is no
 This will take a parser result and pipe into a function.
 
 ```scala
-val parser = |>(AsInt, _ + 3) // validates an int and adds 3
-val parser = |>(||(AsString), _.mkString(",")) // validates a list and maps in to a comma separated string  
+val parser = |>(AsInt, (i:Int) => i + 3) // validates an int and adds 3
+val parser = |>(||(AsString), (l:List[Any]) => l.mkString(",")) // validates a list and maps in to a comma separated string  
 ```
 
 [HigherState]: http://higher-state.blogspot.com
