@@ -3,6 +3,7 @@ package org.higherstate.jameson
 import org.higherstate.jameson.parsers._
 import reflect.runtime.universe._
 import scala.util.matching.Regex
+import scala.reflect.ClassTag
 
 object Dsl {
 
@@ -101,4 +102,6 @@ object Dsl {
   val AsShort = ShortParser
   val AsString = StringParser
   val AsUUID = UUIDParser
+
+  def AsAnyRef[T](implicit classTag:ClassTag[T]) = AnyRefParser[T]
 }

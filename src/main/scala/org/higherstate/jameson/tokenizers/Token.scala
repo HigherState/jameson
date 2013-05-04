@@ -21,5 +21,6 @@ case class LongToken(value:Long) extends AnyVal with ValueToken
 case class DoubleToken(value:Double) extends AnyVal with ValueToken
 case class StringToken(value:String) extends AnyVal with ValueToken
 case class BooleanToken(value:Boolean) extends AnyVal with ValueToken
+case class AnyRefToken(value:AnyRef) extends ValueToken
 
-case class BadToken(exception:Throwable) extends AnyVal with Token
+case class BadToken(value:Throwable) extends AnyVal with ValueToken

@@ -1,11 +1,12 @@
 package org.higherstate.jameson
 
 import org.specs2.mutable.Specification
-  import org.higherstate.jameson.DefaultRegistry._
-  import org.higherstate.jameson.Dsl._
-  import scala.util._
+import org.higherstate.jameson.DefaultRegistry._
+import org.higherstate.jameson.Dsl._
+import scala.util._
+import java.util
 
-  class DslValuesSpec extends Specification{
+class DslValuesSpec extends Specification{
 
   "Open Map Parser" should {
     val json = """{"tInt":3,"tBool":false,"tMap":{"t1":1},"tList":[1,2,3]}"""
@@ -156,6 +157,14 @@ import org.specs2.mutable.Specification
     }
     "Succeed class right" in {
       ><(>>[Child1], >>[Child2]).parse("""{"tBool":true}""") mustEqual(Success(Left(Child2(true))))
+    }
+  }
+
+  "Object parser" should {
+    "Succeed with correct type match" in {
+      val m = new util.HashMap[String,Any]()
+      m.put("key", Child1(3))
+      #*("key" -> AsAnyRef[Child1]).parse(m) mustEqual(Success(Map("key" -> Child1(3))))
     }
   }
 }

@@ -15,6 +15,7 @@ trait Registry {
   def defaultObjectParser:Parser[_]
   def defaultArrayParser:Parser[_]
   def defaultNullParser:Parser[_]
+  def defaultAnyRefParser:Parser[_]
 
   def apply[T:TypeTag]:Parser[T] = classParsers(typeOf[T].typeSymbol.asType).asInstanceOf[Parser[T]]
   def apply(typeSymbol:TypeSymbol):Parser[_] = classParsers(typeSymbol)

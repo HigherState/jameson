@@ -18,6 +18,7 @@ trait DefaultRegistryValues extends Registry {
   def defaultObjectParser:Parser[_] = MapParser(defaultUnknownParser)
   def defaultArrayParser:Parser[_] = ListParser(defaultUnknownParser)
   def defaultNullParser:Parser[_] = NullParser
+  def defaultAnyRefParser:Parser[_] = AnyRefParser[AnyRef]
 
   def classParsers:Map[TypeSymbol, Parser[_]] = Map(
     ts[Any] -> AnyParser(this),

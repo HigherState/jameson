@@ -16,6 +16,7 @@ trait CustomRegistry extends Registry {
   private var _defaultArrayParser = defaults.defaultArrayParser
   private var _defaultObjectParser = defaults.defaultObjectParser
   private var _defaultNullParser = defaults.defaultNullParser
+  private var _defaultAnyRefParser = defaults.defaultAnyRefParser
 
   protected def overrideDefaultUnknownParser(parser:Parser[_]) { _defaultUnknownParser = parser }
   protected def overrideDefaultTextParser(parser:Parser[_]) { _defaultTextParser = parser }
@@ -25,6 +26,7 @@ trait CustomRegistry extends Registry {
   protected def overrideDefaultArrayParser(parser:Parser[_]) { _defaultArrayParser = parser}
   protected def overrideDefaultObjectParser(parser:Parser[_]) { _defaultObjectParser = parser}
   protected def overrideDefaultNullParser(parser:Parser[_]) { _defaultNullParser = parser}
+  protected def overrideDefaultAnyRefParser(parser:Parser[_]) { _defaultAnyRefParser = parser}
 
   def defaultUnknownParser:Parser[_] = _defaultUnknownParser
   def defaultTextParser:Parser[_] = _defaultTextParser
@@ -34,6 +36,7 @@ trait CustomRegistry extends Registry {
   def defaultObjectParser:Parser[_] = _defaultObjectParser
   def defaultArrayParser:Parser[_] = _defaultArrayParser
   def defaultNullParser:Parser[_] = _defaultNullParser
+  def defaultAnyRefParser:Parser[_] = _defaultAnyRefParser
 
   protected def bindParser[T:TypeTag](parser:Parser[_]) {
     _defaultClassParser += typeOf[T].typeSymbol.asType -> parser

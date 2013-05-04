@@ -30,7 +30,7 @@ private case class JacksonTokenizerInstance(jsonParser:JsonParser) extends Token
       case JsonToken.VALUE_NULL             => NullToken
       case JsonToken.VALUE_TRUE             => BooleanToken(true)
       case JsonToken.VALUE_FALSE            => BooleanToken(false)
-      case JsonToken.VALUE_EMBEDDED_OBJECT  => ???
+      case JsonToken.VALUE_EMBEDDED_OBJECT  => AnyRefToken(jsonParser.getEmbeddedObject)
       case JsonToken.NOT_AVAILABLE          => ???
       case JsonToken.FIELD_NAME             => ???
       case null                             => EndToken

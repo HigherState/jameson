@@ -11,6 +11,6 @@ trait Parser[+U] {
     parse(JacksonTokenizer(jsonString), Path)
   }
 
-  def parse(map:java.util.Map[String, Any]):Tokenizer = JavaMapTokenizer(map)
-  def parse(array:Array[Any]):Tokenizer = JavaMapTokenizer(array)
+  def parse(map:java.util.Map[String, Any]):Try[U] = parse(JavaMapTokenizer(map), Path)
+  def parse(list:java.util.List[Any]):Try[U] = parse(JavaMapTokenizer(list), Path)
 }

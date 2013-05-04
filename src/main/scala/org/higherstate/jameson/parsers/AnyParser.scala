@@ -14,6 +14,7 @@ case class AnyParser(registry:Registry) extends Parser[Any] {
     case d:DoubleToken    => registry.defaultDoubleParser.parse(tokenizer, path)
     case NullToken        => registry.defaultNullParser.parse(tokenizer, path)
     case b:BooleanToken   => registry.defaultBooleanParser.parse(tokenizer, path)
+    case a:AnyRefToken    => registry.defaultAnyRefParser.parse(tokenizer, path)
     case token            => Failure(UnexpectedTokenException("Unexpected token", token, path))
   }
 }
