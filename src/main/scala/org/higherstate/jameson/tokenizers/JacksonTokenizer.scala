@@ -2,14 +2,28 @@ package org.higherstate.jameson.tokenizers
 
 import com.fasterxml.jackson.core.{JsonFactory, JsonToken, JsonParser}
 import scala.util.Try
+import java.io.{InputStream, Reader}
 
 object JacksonTokenizer {
   def apply(jsonString:String):Tokenizer = {
     val jsonFactory = new JsonFactory()
-    val jp = jsonFactory.createJsonParser(jsonString)
+    val jp = jsonFactory.createParser(jsonString)
     jp.nextToken
     JacksonTokenizerInstance(jp)
   }
+  def apply(reader:Reader):Tokenizer = {
+    val jsonFactory = new JsonFactory()
+    val jp = jsonFactory.createParser(reader)
+    jp.nextToken
+    JacksonTokenizerInstance(jp)
+  }
+  def apply(inputStream:InputStream):Tokenizer = {
+    val jsonFactory = new JsonFactory()
+    val jp = jsonFactory.createParser(inputStream)
+    jp.nextToken
+    JacksonTokenizerInstance(jp)
+  }
+
 }
 private case class JacksonTokenizerInstance(jsonParser:JsonParser) extends Tokenizer {
 
