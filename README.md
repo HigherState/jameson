@@ -1,5 +1,7 @@
 #Overview
 
+###[HigherState][]
+
 Jameson builds on [Jackson][] to provide a dsl for [Scala][] which ties validation with 
 deserialization.  Jameson supports deserializing into native Scala Map and Lists as
 well as deserializing a stream into a TraversableOnce, it further supports Option and Either types.  
@@ -53,12 +55,13 @@ AsAnyRef    -validates and parses embedded objects
 \#* \#! \#^	-these validate and parse to Map[String,Any]  
 ||			-validates and parses to a List  
 ¦¦			-validates and parses to a TraversableOnce  
+\>>         -validates against a class   
 ?			-validates and parses to Some(value) or None if null is found  
 \><			-validates and parses to Either  
 /			-validates against a key value pair matched parser  
-r           -validates against a regex  
-\>>         -validates against a class   
 |\>         -validates and parses into a function  
+r           -validates against a regex  
+
 
 ## Dsl parser/validators
 
@@ -112,29 +115,61 @@ val parser = ¦¦(AsString) //This will validate the json is a list of strings
 val parser = ¦¦(||) //This will validate the json is a list of List[Any]
 ```
 
-####Option and OrElse Parser ?
+####Case class parser \>>
+This will parse an json object into a specified case class using the default constructor.  Keys can be validated against to
+resolve any type erasure, and keys renamed to match the correct parameter name.  Parser will also resolve mapping for any
+unspecified case classes in the constructor parameters.  Parser will try and match the correct parser to the constructor parameter if not specified.
+
+```scala
+val parser >>[MyClass] // this will parse json object to MyClass
+val parser >>[MyClass]("key" -> "count" -> AsInt) // this will map from key 'key' to parameter name 'count' as an Int
+val parser >>[MyClass]("default" -> ?("defaultValue")) //this will use the value "defaultValue" for the argument "default" if value not found
+val parser >>[MyClass]("list" -> ||(AsFloat)) //this will resolve the argument list as a list of floats.
+```
+
+####Option and OrElse parser ?
 This will parse to a Some(value) if the value is not null, otherwise it will parse to None.  If a default value is specified
 then this will either return a the value or the default value if null was found.  
 *When used in a Map parser, if the key is not found and the validator is required (->>) then it will substitute a None, or default value.*
 *When used in a Class parser, if the key is not found, then it will substitute a None, or default value*
 
 ```scala
-val parser = ? //No validation
-val parser = ?("empty") //No validation, if null, replaces with "empty"
-val parser = ?(AsInt) //validate is null or Int
-val parser = ?(AsDouble, 1.5) //validates is null or double
+val parser = ? // no validation
+val parser = ?("empty") // no validation, if null, replaces with "empty"
+val parser = ?(AsInt) // validate is null or Int
+val parser = ?(AsDouble, 1.5) // validates is null or double
 ```
 
-####Either Parser ><
+####Either parser ><
 This will parse to either the left provided parser or the right provided parser, returning a Left(value) or Right(value) object.
-The parser will try the left parser first, and if it fails, will try the right parser.  This causes locallized buffering of
+The parser will try the left parser first, and if it fails, will try the right parser.  This causes localized buffering of
 the tokens.
 
 ```scala
-val parser = ><(AsInt, AsDouble) //Validates as either an int or a double
-val parser = ><(#*("key" ->> AsInt), #*("key" -> AsString)) //Validates as either a map with a required key int value, or a map which may have key string value
+val parser = ><(AsInt, AsDouble) // validates as either an int or a double
+val parser = ><(#*("key" ->> AsInt), #*("key" -> AsString)) // validates as either a map with a required key int value, or a map which may have key string value
+val parser = ><(>>[MyClass1], >>[MyClass2]) // validates as either a mapping into MyClass1 or MyClass2
 ```
 
+####Matching parser /
+This will parse a json object to a choice of possible parsers depending on a match with an extracted key,value pair. Finding the
+matching key value pair causes localized buffering of the tokens.  A default value can be provided if a key value pair is not found
 
+```scala
+val parser = /("mapType","open" -> #*(), "closed" -> #*("key" -> AsString)) // selects parser based on "mapType" values "open" or "closed"
+val parser = /"type", "c1" -> >>[MyClass1], "c2" -> >>[MyClass2]) // selects parser based on "type" values "c1" or "c2"
+val parser = /("type", >>[MyClass1], >>[MyClass2]) // selects class parser based on "type" matching against the name of the class, "MyClass1" or "MyClass2"
+val parser = /("type", "MyClass1", >>[MyClass1], >>[MyClass2])// if "type" is not found will match MyClass1
+```
+
+####Function parser |\>
+This will take a parser result and pipe into a function.
+
+```scala
+val parser = |>(AsInt, _ + 3) // validates an int and adds 3
+val parser = |>(||(AsString), _.mkString(",")) // validates a list and maps in to a comma separated string  
+```
+
+[HigherState]: http://higher-state.blogspot.com
 [Jackson]: http://jackson.codehaus.org/
 [Scala]: http://www.scala-lang.org/
