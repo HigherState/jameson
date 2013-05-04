@@ -49,6 +49,7 @@ AsDouble	-validates and parses to Double
 AsChar		-validates and parser to Char  
 AsString	-validates and parses to String  
 AsNull		-validates and parses to null 
+AsAnyRef    -validates and parses embedded objects
 \#* \#! \#^	-these validate and parse to Map[String,Any]  
 ||			-validates and parses to a List  
 ¦¦			-validates and parses to a TraversableOnce  
@@ -56,7 +57,8 @@ AsNull		-validates and parses to null
 \><			-validates and parses to Either  
 /			-validates against a key value pair matched parser  
 r           -validates against a regex  
-\>>          -validates against a class  
+\>>         -validates against a class   
+|\>         -validates and parses into a function  
 
 ## Dsl parser/validators
 
@@ -65,7 +67,7 @@ This will parse a json object and will map any key:value pair, whether it has be
 explicit validated against or not.  Parsing will return a Try[Map[String,Any]] object
 
 ```scala
-val parser = #* //This will simply map all object content to a Map[String,Any]
+val parser = #*() //This will simply map all object content to a Map[String,Any]
 val parser = #*("a" -> AsInt) //This will validate that the key 'a' maps to an Integer
 val parser = #*("a" -> AsString, "b" -> AsDouble) //This will validate that the key 'a' maps to a String and the key 'b' maps to a double 
 val parser = #*("a" ->> AsBool) //This will validate that the key 'a' maps to a Boolean and that 'a' is required
@@ -94,7 +96,7 @@ This will parse a json array to a Try[List[?]].  The type of the return List wil
 or will be Any if no parser argument is provided
 
 ```scala
-val parser = || //This will validate that the  json is a list
+val parser = ||() //This will validate that the  json is a list
 val parser = ||(AsString) //This will validate the json is a list of strings 
 val parser = ||(#*) //This will validate the json is a list of (open) Maps
 ```
@@ -105,7 +107,7 @@ or will be Any if no parser argument is provided.  If there is a Failure value i
 more elements.  The TraversableOnce parser should be a top level parser only.
 
 ```scala
-val parser = ¦¦ //This will validate that the  json is a list
+val parser = ¦¦() //This will validate that the  json is a list
 val parser = ¦¦(AsString) //This will validate the json is a list of strings 
 val parser = ¦¦(||) //This will validate the json is a list of List[Any]
 ```
@@ -121,6 +123,16 @@ val parser = ? //No validation
 val parser = ?("empty") //No validation, if null, replaces with "empty"
 val parser = ?(AsInt) //validate is null or Int
 val parser = ?(AsDouble, 1.5) //validates is null or double
+```
+
+####Either Parser ><
+This will parse to either the left provided parser or the right provided parser, returning a Left(value) or Right(value) object.
+The parser will try the left parser first, and if it fails, will try the right parser.  This causes locallized buffering of
+the tokens.
+
+```scala
+val parser = ><(AsInt, AsDouble) //Validates as either an int or a double
+val parser = ><(#*("key" ->> AsInt), #*("key" -> AsString)) //Validates as either a map with a required key int value, or a map which may have key string value
 ```
 
 
