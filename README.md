@@ -52,6 +52,7 @@ AsChar		-validates and parser to Char
 AsString	-validates and parses to String  
 AsNull		-validates and parses to null 
 AsAnyRef    -validates and parses embedded objects
+AsDateTime  -validates and parsers to a joda.DateTime
 \#* \#! \#^	-these validate and parse to Map[String,Any]  
 ||			-validates and parses to a List  
 ¦¦			-validates and parses to a TraversableOnce  
