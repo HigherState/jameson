@@ -167,4 +167,11 @@ class DslValuesSpec extends Specification{
       #*("key" -> AsAnyRef[Child1]).parse(m) mustEqual(Success(Map("key" -> Child1(3))))
     }
   }
+
+  "DateTime parser" should {
+    "Succeed with different date strings" in {
+      val dt = AsDateTime.parse("\"2010-11-21\"")
+      val dt1 = AsDateTime.parse("\"2010-11-21\"")
+    }
+  }
 }

@@ -3,9 +3,14 @@ package org.higherstate.jameson
 import parsers._
 import reflect.runtime.universe._
 import java.util.UUID
+import org.joda.time.format.DateTimeFormatter
+import org.joda.time.DateTimeZone
 
 object DefaultRegistry {
   implicit val registry:Registry = new DefaultRegistryValues {}
+  implicit val dateTimeFormatter:Option[DateTimeFormatter] = None
+  implicit val dateTimeZone:DateTimeZone = DateTimeZone.UTC
+
 }
 
 trait DefaultRegistryValues extends Registry {

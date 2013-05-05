@@ -1,7 +1,6 @@
 package org.higherstate.jameson.parsers
 
-import util.{Success, Try}
-import org.higherstate.jameson.Extensions._
+import util.Success
 import org.higherstate.jameson.Path
 import org.higherstate.jameson.tokenizers._
 
