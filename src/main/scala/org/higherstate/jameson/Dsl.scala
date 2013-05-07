@@ -9,29 +9,48 @@ import org.joda.time.DateTimeZone
 
 object Dsl {
 
-  case class RequiredSelector[U,T](key:U, parser:Parser[T], replaceKey:Option[U]) extends Selector[U, T] {
-    def isRequired = true
+  case class SelectorInstance[U,T](key:U, parser:Parser[T], replaceKey:Option[U], isRequired:Boolean) extends Selector[U, T] {
+    def |>[V](func:T => V) = SelectorInstance(key, FunctionParser(parser, func), replaceKey, isRequired)
+    def |>>[V](func:T => V) = SelectorInstance(key, FunctionParser(parser, func), replaceKey, true)
   }
 
   implicit class StringTupleExtenstion(val self:(String, String)) extends AnyVal {
-    def ->>[T](parser:Parser[T]) = RequiredSelector(self._1, parser, Some(self._2))
+    def ->>[T](parser:Parser[T]) = SelectorInstance(self._1, parser, Some(self._2), true)
   }
   implicit class AnyExt[U](val self:U) extends AnyVal {
-    def ->>[T](parser:Parser[T]) = RequiredSelector(self, parser, None)
+    def ->>[T](parser:Parser[T]) = SelectorInstance(self, parser, None, true)
   }
-
 
   implicit class UnrequiredSelectorWithReplaceKey[T](val self:((String, String),Parser[T])) extends AnyVal with Selector[String, T] {
     def key = self._1._1
     def parser = self._2
     def isRequired = false
     def replaceKey = Some(self._1._2)
+    def |>[V](func:T => V) = SelectorInstance(key, FunctionParser(parser, func), replaceKey, isRequired)
+    def |>>[V](func:T => V) = SelectorInstance(key, FunctionParser(parser, func), replaceKey, true)
   }
+
   implicit class UnrequiredSelector[U, T](val self:(U,Parser[T])) extends AnyVal with Selector[U, T] {
     def key = self._1
     def parser = self._2
     def isRequired = false
     def replaceKey = None
+    def |>[V](func:T => V) = SelectorInstance(key, FunctionParser(parser, func), replaceKey, isRequired)
+    def |>>[V](func:T => V) = SelectorInstance(key, FunctionParser(parser, func), replaceKey, true)
+  }
+
+  implicit class StringPipe(val self:String) extends AnyVal {
+    def |>[V](func:Any => V)(implicit registry:Registry) = SelectorInstance(self, FunctionParser(AsAny, func), None, false)
+    def |>>[V](func:Any => V)(implicit registry:Registry) = SelectorInstance(self, FunctionParser(AsAny, func), None, true)
+  }
+
+  implicit class TuplePipe(val self:(String,String)) extends AnyVal {
+    def |>[V](func:Any => V)(implicit registry:Registry) = SelectorInstance(self._1, FunctionParser(AsAny, func), Some(self._2), false)
+    def |>>[V](func:Any => V)(implicit registry:Registry) = SelectorInstance(self._1, FunctionParser(AsAny, func), Some(self._2), true)
+  }
+
+  implicit class ParserPipe[T](val self:Parser[T]) extends AnyVal {
+    def |>[V](func:T => V) = FunctionParser(self, func)
   }
 
   object || {
@@ -84,8 +103,6 @@ object Dsl {
   def >>[T <: AnyRef](selectors:Selector[String, _]*)(implicit registry:Registry, typeTag:TypeTag[T]) = {
     ClassParser[T](selectors.toList, registry)
   }
-
-  def |>[T,U](parser:Parser[T], func:T => U) = FunctionParser(parser, func)
 
   def r(regex:String) = RegexValidationParser(regex.r, "Invalid string format.")
   def r(regex:String, message:String) = RegexValidationParser(regex.r, message)

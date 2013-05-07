@@ -168,10 +168,24 @@ class DslValuesSpec extends Specification{
     }
   }
 
-  "DateTime parser" should {
-    "Succeed with different date strings" in {
-      val dt = AsDateTime.parse("\"2010-11-21\"")
-      val dt1 = AsDateTime.parse("\"2010-11-21\"")
+  "function parser" should {
+    "Succeed with a key into function" in {
+      def a(a:Any) = a.toString
+      #*("key" |> a).parse("""{"key":3}""") mustEqual(Success(Map("key" -> "3")))
+    }
+    "Succeed with a remap" in {
+      def a(a:Any) = a.toString
+      #*("key" -> "newKey" |> a).parse("""{"key":3}""") mustEqual(Success(Map("newKey" -> "3")))
+    }
+    "Succeed with a parser" in {
+      ||(AsInt |> (_.toString)).parse("""[1,2]""") mustEqual(Success(List("1","2")))
+    }
+    "Succeed with a key and a parser" in {
+      def a(a:Int) = a.toString
+      #*("key" -> AsInt |> a).parse("""{"key":3}""") mustEqual(Success(Map("key" -> "3")))
+    }
+    "Succeed with a key, remap and a parser" in {
+      #*("key" -> "newKey" -> AsInt |> (_ + 4)).parse("""{"key":3}""") mustEqual(Success(Map("newKey" -> 7)))
     }
   }
 }

@@ -9,3 +9,4 @@ trait Selector[U, +T] extends Any {
   def parser:Parser[T]
   def isRequired:Boolean
 }
+
