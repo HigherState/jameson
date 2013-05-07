@@ -156,7 +156,8 @@ class DslValuesSpec extends Specification{
       ><(>>[Child1], >>[Child2]).parse("""{"tInt":3}""") mustEqual(Success(Left(Child1(3))))
     }
     "Succeed class right" in {
-      ><(>>[Child1], >>[Child2]).parse("""{"tBool":true}""") mustEqual(Success(Left(Child2(true))))
+      val p = ><(>>[Child1], >>[Child2])
+      p.parse("""{"tBool":true}""") mustEqual(Success(Left(Child2(true))))
     }
   }
 
