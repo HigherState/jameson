@@ -135,6 +135,7 @@ object Dsl {
   def r(regex:Regex, message:String) = RegexValidationParser(regex, message)
 
   def AsAny(implicit registry:Registry) = AnyParser(registry)
+  def AsAnyVal(implicit registry:Registry) = AnyValParser(registry)
   val AsBool = BooleanParser
   val AsByte = ByteParser
   val AsChar = CharParser
