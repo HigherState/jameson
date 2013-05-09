@@ -12,21 +12,22 @@ case class ClassParser[+T:TypeTag](selectors:List[Selector[String,_]], registry:
   def getClassName = typeOf[T].typeSymbol.asType.name.toString
   private val constr = typeOf[T].typeSymbol.typeSignature.members.filter(_.isMethod).map(_.asMethod).filter(_.isConstructor).head
   private val arguments:Map[String, (Parser[_], Int)] = constr.typeSignature match {
-    case MethodType(params, _ ) => params.zipWithIndex.map { case (p, i) =>
+    case MethodType(params, _ ) => params.zipWithIndex.flatMap { case (p, i) =>
       val name = p.asTerm.name.toString
-      selectors.find(_.toKey == name).map(s => s.key -> (s.parser, i))
-      .getOrElse(name -> (registry.get(p.typeSignature.typeSymbol.asType).getOrElse(EmbeddedClassParser(p.typeSignature.typeSymbol.asType, registry)), i))
+      selectors.find(_.toKey == name).map(s => s.keys.map(_ -> (s.parser, i)))
+      .getOrElse(List(name -> (registry.get(p.typeSignature.typeSymbol.asType).getOrElse(EmbeddedClassParser(p.typeSignature.typeSymbol.asType, registry)), i)))
     }.toMap
     case _:NullaryMethodType    => Map.empty
   }
+  private val noArgs = arguments.map(_._2._2).max + 1
 
   private val hasDefaults = selectors.exists(_.parser.isInstanceOf[HasDefault[_]])
 
   def parse(tokenizer:Tokenizer, path: Path): Try[T] = tokenizer.head match {
     case ObjectStartToken => {
-      val args = new Array[Any](arguments.size)
+      val args = new Array[Any](noArgs)
       buildArgs(tokenizer.moveNext(), args, path).flatMap { found =>
-        val diff = args.size - found.size
+        val diff = noArgs - found.size
         if (diff > 0 && (!hasDefaults || (arguments collect { case (key, (p:HasDefault[_], i)) if !found.contains(i) => {args(i) = p.default; i}}).size < diff))
           Failure(ClassKeysNotFoundException(typeOf[T].typeSymbol.asType, arguments.filter(i => !found.contains(i._2._2)).map(_._1).toList, path))
         else Try(currentMirror.reflectClass(typeOf[T].typeSymbol.asClass).reflectConstructor(constr).apply(args:_*).asInstanceOf[T]).orElse(Failure(InvalidClassArgsException(path)))

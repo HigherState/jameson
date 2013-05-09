@@ -15,6 +15,7 @@ class DslClassSpec extends Specification {
       >>[MapChild]("map" -> #^("value" -> AsAny)).parse("""{"map":{"value":3,"value2":false}}""") mustEqual (Success(MapChild(Map("value" -> 3))))
       >>[Child1]("Int" -> "tInt" -> AsInt).parse("""{"Int":3}""") mustEqual (Success(Child1(3)))
       >>[Child3]("tInt" -> ?(AsInt, 5)).parse("""{"tBool":false}""") mustEqual (Success(Child3(5, false)))
+      >>[Child1](("a"|"b") -> "tInt" -> AsInt).parse("""{"b":3}""") mustEqual (Success(Child1(3)))
     }
 //    "parse simple class with value and extra values" in {
 //

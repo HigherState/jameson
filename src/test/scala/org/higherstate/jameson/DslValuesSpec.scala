@@ -50,6 +50,12 @@ class DslValuesSpec extends Specification{
     "ignores ? if not found and not required" in {
       #*("tFloat" -> ?(AsFloat)).parse(json) mustEqual Success(map)
     }
+    "supports | in key name" in {
+      #*(("tint"|"tInt"|"TInt") -> "tInt" -> AsInt).parse(json) mustEqual Success(map)
+    }
+    "fail if none in | for required key name" in {
+      #*(("a"|"b"|"c") -> "d" ->> AsInt).parse(json).isFailure mustEqual true
+    }
   }
 
   "Closed Map Parser" should {

@@ -1,9 +1,17 @@
 package org.higherstate.jameson.parsers
 
+import scala.reflect.runtime._
 import org.higherstate.jameson.tokenizers.Tokenizer
 import org.higherstate.jameson.Path
 import scala.util.Try
 
-case class FunctionParser[T,U](parser:Parser[T], func:T => U) extends Parser[U] {
-  def parse(tokenizer: Tokenizer, path: Path): Try[U] = parser.parse(tokenizer, path).map(func)
+
+sealed trait FunctionParser[T] extends Parser[T] {
+  def func:Any
+
+  def parse(tokenizer: Tokenizer, path: Path): Try[T] = ???
+}
+
+case class FunctionParser1Arg[T, U](func: T => U) extends FunctionParser[U] {
+
 }

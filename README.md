@@ -1,4 +1,4 @@
-#Overview
+﻿#Overview
 
 ###[HigherState][]
 
@@ -38,9 +38,10 @@ you can then define your own parser validation
 "key" ->> parser/validator 			-if the key is required  
 "key" -> "newKey" -> parser/validator	-if the key is not required and maps with a new key  
 "key" -> "newKey" ->> parser/validator	-if the key is required and maps with a new key  
-"key" |> (Any) => T - pipe value into a function with a single any parameter
-"key" |>> (Any) => T - pipe value into a function with a single any parameter, the key is required
-"key" -> parser/validator |> (T) => U - pipe value of parser/validator into a function with a single parameter of the same type as the parser output.
+("key1"|"key2"|"key3") -> "newKey" -> parser/validator  -if there are different possible keys, must provide a new key  
+"key" |> (Any) => T - pipe value into a function with a single any parameter  
+"key" |>> (Any) => T - pipe value into a function with a single any parameter, the key is required  
+"key" -> parser/validator |> (T) => U - pipe value of parser/validator into a function with a single parameter of the same type as the parser output.  
 
 ####The following validators are supported out of the box.  
   
