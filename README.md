@@ -2,7 +2,7 @@
 
 ###[HigherState][]
 
-Jameson builds on [Jackson][] to provide a dsl for [Scala][] which ties validation with 
+Jameson builds on [Jackson][] to provide a DSL for [Scala][] which ties validation with 
 deserialization.  Jameson supports deserializing into native Scala Map and Lists as
 well as deserializing a stream into a TraversableOnce, it further supports Option and Either types.  
 Jameson will can deserialize into case classes and nested case classes. It is fully design to support 
@@ -15,7 +15,7 @@ and validation depending on key value matches. Jameson also supports key substit
 
 # Usage
 
-To use Jameson simply include a reference to the Dsl to create your own parser validators.
+To use Jameson simply include a reference to the DSL to create your own parser validators.
 
 ```scala
 import org.higherState.jameson.Dsl._
@@ -34,10 +34,13 @@ you can then define your own parser validation
 
 ####Jameson supports parser validators against key value pairs, these are of the form  
 
-"key" -> validator  			-if the key is not required  
-"key" ->> validator 			-if the key is required  
-"key" -> "newKey" -> validator	-if the key is not required and maps with a new key  
-"key" -> "newKey" ->> validator	-if the key is required and maps with a new key  
+"key" -> parser/validator  			-if the key is not required  
+"key" ->> parser/validator 			-if the key is required  
+"key" -> "newKey" -> parser/validator	-if the key is not required and maps with a new key  
+"key" -> "newKey" ->> parser/validator	-if the key is required and maps with a new key  
+"key" |> (Any) => T - pipe value into a function with a single any parameter
+"key" |>> (Any) => T - pipe value into a function with a single any parameter, the key is required
+"key" -> parser/validator |> (T) => U - pipe value of parser/validator into a function with a single parameter of the same type as the parser output.
 
 ####The following validators are supported out of the box.  
   
@@ -161,14 +164,6 @@ val parser = /("mapType","open" -> #*(), "closed" -> #*("key" -> AsString)) // s
 val parser = /("type", "c1" -> >>[MyClass1], "c2" -> >>[MyClass2]) // selects parser based on "type" values "c1" or "c2"
 val parser = /("type", >>[MyClass1], >>[MyClass2]) // selects class parser based on "type" matching against the name of the class, "MyClass1" or "MyClass2"
 val parser = /("type", "MyClass1", >>[MyClass1], >>[MyClass2])// if "type" is not found will match MyClass1
-```
-
-####Function parser |\>
-This will take a parser result and pipe into a function.
-
-```scala
-val parser = |>(AsInt, (i:Int) => i + 3) // validates an int and adds 3
-val parser = |>(||(AsString), (l:List[Any]) => l.mkString(",")) // validates a list and maps in to a comma separated string  
 ```
 
 [HigherState]: http://higher-state.blogspot.com
