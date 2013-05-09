@@ -165,7 +165,7 @@ class DslValuesSpec extends WordSpec with MustMatchers {
     }
     "Succeed class right" in {
       val p = ><(>>[Child1], >>[Child2])
-      p.parse("""{"tBool":true}""") mustEqual(Success(Left(Child2(true))))
+      p.parse("""{"tBool":true}""") mustEqual(Success(Right(Child2(true))))
     }
   }
 
@@ -206,6 +206,22 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       }
       val r = p2.parse("""{"type":"t2","value":3}""")
       r mustEqual(Success(Map("value" -> 3, "type" -> "t2")))
+    }
+    "Succeed with default value on partial function" in {
+      val p2 = /[String, Map[String,Any]]("type", "t1"){
+        case "t1"         =>  #*("value" -> AsBool)
+        case "t2" | "t3"  =>  #!("value" -> AsInt, "type" -> AsAnyVal)
+      }
+      val r = p2.parse("""{"value":false}""")
+      r mustEqual(Success(Map("value" -> false)))
+    }
+    "Succeed with value match" in {
+      /("type", "t1" -> #*("value" -> AsBool), "t2" -> #!("value" -> AsInt, "type" -> AsAnyVal))
+        .parse("""{"type":"t2","value":3}""") mustEqual (Success(Map("value" -> 3, "type" -> "t2")))
+    }
+    "Success on default value with value match" in {
+      /("type", "t1", "t1" -> #*("value" -> AsBool), "t2" -> #!("value" -> AsInt, "type" -> AsAnyVal))
+        .parse("""{"value":true}""") mustEqual (Success(Map("value" -> true)))
     }
   }
 }

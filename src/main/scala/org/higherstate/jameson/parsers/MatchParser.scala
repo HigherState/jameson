@@ -8,9 +8,9 @@ import org.higherstate.jameson.exceptions.UnexpectedTokenException
 import org.higherstate.jameson.exceptions.ConditionalKeyMatchNotFoundException
 
 //TODO: limit to map like parsers
-case class MatchParser[T, U](identifierKey:String, identifierParser:Parser[U], default:Option[U], matchParsers:Map[U, Parser[T]]) extends Parser[T]{
+case class MatchParser[T, U](identifierKey:String, identifierParser:Parser[T], default:Option[T], matchParsers:Map[T, Parser[U]]) extends Parser[U]{
 
-  def parse(tokenizer:Tokenizer, path: Path): Try[T] = {
+  def parse(tokenizer:Tokenizer, path: Path): Try[U] = {
     val bufferingTokenizer = tokenizer.toBufferingTokenizer()
     bufferingTokenizer.head match {
       case ObjectStartToken => findMatch(bufferingTokenizer.moveNext(), path).flatMap{ key =>
@@ -22,7 +22,7 @@ case class MatchParser[T, U](identifierKey:String, identifierParser:Parser[U], d
   }
 
   //Returns tokenizer with match key and value removed
-  private def findMatch(tokenizer:Tokenizer, path: Path):Try[U] = tokenizer.head match {
+  private def findMatch(tokenizer:Tokenizer, path: Path):Try[T] = tokenizer.head match {
     case KeyToken(key) if key == identifierKey => identifierParser.parse(tokenizer.moveNext(), path + key)
     case KeyToken(key)                         => findMatch(tokenizer.dropNext(), path)
     case ObjectEndToken                        => default.map(Success(_)).getOrElse(Failure(ConditionalKeyNotFoundException(identifierKey, path)))
@@ -32,9 +32,9 @@ case class MatchParser[T, U](identifierKey:String, identifierParser:Parser[U], d
 
 }
 
-case class PartialParser[T, U](identifierKey:String, identifierParser:Parser[U], default:Option[U], matchParsers:PartialFunction[U, Parser[T]]) extends Parser[T]{
+case class PartialParser[T, U](identifierKey:String, identifierParser:Parser[T], default:Option[T], matchParsers:PartialFunction[T, Parser[U]]) extends Parser[U]{
 
-  def parse(tokenizer:Tokenizer, path: Path): Try[T] = {
+  def parse(tokenizer:Tokenizer, path: Path): Try[U] = {
     val bufferingTokenizer = tokenizer.toBufferingTokenizer()
     bufferingTokenizer.head match {
       case ObjectStartToken => findMatch(bufferingTokenizer.moveNext(), path).flatMap{ key =>
@@ -46,7 +46,7 @@ case class PartialParser[T, U](identifierKey:String, identifierParser:Parser[U],
   }
 
   //Returns tokenizer with match key and value removed
-  private def findMatch(tokenizer:Tokenizer, path: Path):Try[U] = tokenizer.head match {
+  private def findMatch(tokenizer:Tokenizer, path: Path):Try[T] = tokenizer.head match {
     case KeyToken(key) if key == identifierKey => identifierParser.parse(tokenizer.moveNext(), path + key)
     case KeyToken(key)                         => findMatch(tokenizer.dropNext(), path)
     case ObjectEndToken                        => default.map(Success(_)).getOrElse(Failure(ConditionalKeyNotFoundException(identifierKey, path)))
