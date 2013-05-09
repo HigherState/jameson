@@ -12,7 +12,7 @@ resolvers += "Sonatype snapshots" at "http://oss.sonatype.org/content/repositori
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-compiler" % "2.10.1",
   "com.fasterxml.jackson.core" % "jackson-core" % "2.2.2-SNAPSHOT",
-  "org.specs2" %% "specs2" % "1.14" % "test",
+  "org.scalatest" %% "scalatest" % "2.0.M6-SNAP16" % "test",
   "joda-time" % "joda-time" % "2.1",
   "org.joda" % "joda-convert" % "1.2"
 )

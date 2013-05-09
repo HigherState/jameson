@@ -1,11 +1,12 @@
 package org.higherstate.jameson
 
-import org.specs2.mutable.Specification
 import org.higherstate.jameson.DefaultRegistry._
 import org.higherstate.jameson.Dsl._
 import scala.util._
+import org.scalatest.WordSpec
+import org.scalatest.matchers.MustMatchers
 
-class DslClassSpec extends Specification {
+class DslClassSpec extends WordSpec with MustMatchers  {
 
   "Simple class parsing" should {
     "parse simple class with value" in {

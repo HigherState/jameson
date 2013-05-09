@@ -1,10 +1,9 @@
 package org.higherstate.jameson.tokenizers
 
-import org.specs2.mutable.Specification
-import scala.util._
-import com.fasterxml.jackson.core.JsonFactory
+import org.scalatest.WordSpec
+import org.scalatest.matchers.MustMatchers
 
-class JacksonTokenizerSpec extends Specification{
+class JacksonTokenizerSpec extends WordSpec with MustMatchers {
 
   "Jackson tokenizer should" should {
     "Begin with first token" in {

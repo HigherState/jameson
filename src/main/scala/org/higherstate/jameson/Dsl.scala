@@ -123,6 +123,12 @@ object Dsl {
   def /[U](key:String, default:String, classes:ClassParser[U]*)(implicit registry:Registry) =
     MatchParser(key, registry[String], Some(default), classes.map(p => p.getClassName -> p).toMap)
 
+  def /[T, U](key:String)(func:PartialFunction[T, Parser[U]])(implicit registry:Registry, typeTag:TypeTag[T]) =
+    PartialParser(key, registry[T], None, func)
+
+  def /[T,U](key:String, default:T)(func:PartialFunction[T, Parser[U]])(implicit registry:Registry, typeTag:TypeTag[T]) =
+    PartialParser(key, registry[T], Some(default), func)
+
   def >>[T <: AnyRef](implicit registry:Registry, typeTag:TypeTag[T]) = ClassParser[T](Nil, registry)
 
   def >>[T <: AnyRef](selectors:Selector[String, _]*)(implicit registry:Registry, typeTag:TypeTag[T]) = {

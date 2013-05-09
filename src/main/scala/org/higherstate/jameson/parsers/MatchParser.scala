@@ -31,3 +31,27 @@ case class MatchParser[T, U](identifierKey:String, identifierParser:Parser[U], d
 
 
 }
+
+case class PartialParser[T, U](identifierKey:String, identifierParser:Parser[U], default:Option[U], matchParsers:PartialFunction[U, Parser[T]]) extends Parser[T]{
+
+  def parse(tokenizer:Tokenizer, path: Path): Try[T] = {
+    val bufferingTokenizer = tokenizer.toBufferingTokenizer()
+    bufferingTokenizer.head match {
+      case ObjectStartToken => findMatch(bufferingTokenizer.moveNext(), path).flatMap{ key =>
+        matchParsers.lift(key).map(_.parse(bufferingTokenizer.toBufferedTokenizer(), path))
+          .getOrElse(Failure(ConditionalKeyMatchNotFoundException(identifierKey, path)))
+      }
+      case token            => Failure(UnexpectedTokenException("Expected an or object start token", token, path))
+    }
+  }
+
+  //Returns tokenizer with match key and value removed
+  private def findMatch(tokenizer:Tokenizer, path: Path):Try[U] = tokenizer.head match {
+    case KeyToken(key) if key == identifierKey => identifierParser.parse(tokenizer.moveNext(), path + key)
+    case KeyToken(key)                         => findMatch(tokenizer.dropNext(), path)
+    case ObjectEndToken                        => default.map(Success(_)).getOrElse(Failure(ConditionalKeyNotFoundException(identifierKey, path)))
+    case token                                 => Failure(UnexpectedTokenException("Expected a key or object end token", token, path))
+  }
+
+
+}

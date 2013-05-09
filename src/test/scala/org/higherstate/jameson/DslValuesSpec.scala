@@ -1,18 +1,20 @@
 package org.higherstate.jameson
 
-import org.specs2.mutable.Specification
+import org.scalatest.WordSpec
 import org.higherstate.jameson.DefaultRegistry._
 import org.higherstate.jameson.Dsl._
+import parsers.PartialParser
 import scala.util._
 import java.util
+import org.scalatest.matchers.MustMatchers
 
-class DslValuesSpec extends Specification{
+class DslValuesSpec extends WordSpec with MustMatchers {
 
   "Open Map Parser" should {
     val json = """{"tInt":3,"tBool":false,"tMap":{"t1":1},"tList":[1,2,3]}"""
     val map = Map("tInt" -> 3, "tBool" -> false, "tMap" -> Map("t1" -> 1), "tList" -> List(1,2,3))
     "parse map without explicit key parsers" in {
-      #*().parse(json) mustEqual Success(map)
+      #*().parse(json) mustEqual (Success(map))
     }
     "not parse a json list" in {
       #*().parse("[1,2,3]").isFailure mustEqual true
@@ -147,7 +149,7 @@ class DslValuesSpec extends Specification{
     "Fail only failure element is reached" in {
       val r = ¦¦(AsBool).parse("""[true, true, 3, false]""").get.toList
       r(2).isFailure mustEqual true
-      r should have size (3)
+      r must have size (3)
     }
   }
 
@@ -193,6 +195,17 @@ class DslValuesSpec extends Specification{
     }
     "Succeed with a key, remap and a parser" in {
       #*("key" -> "newKey" -> AsInt |> (_ + 4)).parse("""{"key":3}""") mustEqual(Success(Map("newKey" -> 7)))
+    }
+  }
+
+  "conditional parsing" should {
+    "Succeed with partial functions" in {
+      val p2 = /[String, Map[String,Any]]("type"){
+        case "t1"         =>  #*("value" -> AsBool)
+        case "t2" | "t3"  =>  #!("value" -> AsInt, "type" -> AsAnyVal)
+      }
+      val r = p2.parse("""{"type":"t2","value":3}""")
+      r mustEqual(Success(Map("value" -> 3, "type" -> "t2")))
     }
   }
 }
