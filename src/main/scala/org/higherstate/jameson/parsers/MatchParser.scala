@@ -12,12 +12,13 @@ case class MatchParser[T, U](identifierKey:String, identifierParser:Parser[T], d
 
   def parse(tokenizer:Tokenizer, path: Path): Try[U] = {
     val bufferingTokenizer = tokenizer.toBufferingTokenizer()
+    println(bufferingTokenizer.head)
     bufferingTokenizer.head match {
       case ObjectStartToken => findMatch(bufferingTokenizer.moveNext(), path).flatMap{ key =>
         matchParsers.get(key).map(_.parse(bufferingTokenizer.toBufferedTokenizer(), path))
         .getOrElse(Failure(ConditionalKeyMatchNotFoundException(identifierKey, path)))
       }
-      case token            => Failure(UnexpectedTokenException("Expected an or object start token", token, path))
+      case token            => Failure(UnexpectedTokenException("Match expected an object start token", token, path))
     }
   }
 
@@ -41,7 +42,7 @@ case class PartialParser[T, U](identifierKey:String, identifierParser:Parser[T],
         matchParsers.lift(key).map(_.parse(bufferingTokenizer.toBufferedTokenizer(), path))
           .getOrElse(Failure(ConditionalKeyMatchNotFoundException(identifierKey, path)))
       }
-      case token            => Failure(UnexpectedTokenException("Expected an or object start token", token, path))
+      case token            => Failure(UnexpectedTokenException("Match expected an object start token", token, path))
     }
   }
 
