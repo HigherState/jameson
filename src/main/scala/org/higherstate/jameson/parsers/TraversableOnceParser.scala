@@ -3,13 +3,13 @@ package org.higherstate.jameson.parsers
 import util.{Failure, Success, Try}
 import org.higherstate.jameson.Path
 import org.higherstate.jameson.tokenizers._
-import org.higherstate.jameson.exceptions.UnexpectedTokenException
+import org.higherstate.jameson.exceptions.InvalidTokenException
 
 case class TraversableOnceParser[T](parser:Parser[T]) extends Parser[TraversableOnce[Try[T]]] {
 
   def parse(tokenizer:Tokenizer, path: Path): Try[TraversableOnce[Try[T]]] = tokenizer.head match {
     case ArrayStartToken  => Success(IteratorWrapper(tokenizer, parser, path))
-    case token            => Failure(UnexpectedTokenException("Expected array start token", token, path))
+    case token            => Failure(InvalidTokenException(this, "Expected array start token", token, path))
   }
 
   private case class IteratorWrapper[T](tokenizer:Tokenizer, parser:Parser[T], path:Path) extends Iterator[Try[T]] {

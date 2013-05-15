@@ -1,7 +1,7 @@
 package org.higherstate.jameson.parsers
 
 import util.{Failure, Try}
-import org.higherstate.jameson.exceptions.UnexpectedTokenException
+import org.higherstate.jameson.exceptions.InvalidTokenException
 import org.higherstate.jameson.{Registry, Path}
 import org.higherstate.jameson.tokenizers._
 
@@ -12,6 +12,6 @@ case class AnyValParser(registry:Registry) extends Parser[Any] {
     case d:DoubleToken    => registry.defaultDoubleParser.parse(tokenizer, path)
     case NullToken        => registry.defaultNullParser.parse(tokenizer, path)
     case b:BooleanToken   => registry.defaultBooleanParser.parse(tokenizer, path)
-    case token            => Failure(UnexpectedTokenException("Unexpected token", token, path))
+    case token            => Failure(InvalidTokenException(this, "Unexpected token", token, path))
   }
 }

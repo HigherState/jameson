@@ -5,10 +5,8 @@ import org.higherstate.jameson.NoPath
 import scala.collection.mutable.ListBuffer
 
 object JavaMapTokenizer {
-
   def apply(map:java.util.Map[String, Any]):Tokenizer = JavaMapTokenizerInstance(Left(map))
   def apply(list:java.util.List[Any]):Tokenizer = JavaMapTokenizerInstance(Right(list))
-
 }
 
 case class JavaMapTokenizerInstance(value:Either[java.util.Map[String, Any], java.util.List[Any]]) extends Tokenizer {

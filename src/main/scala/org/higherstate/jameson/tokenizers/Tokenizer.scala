@@ -48,17 +48,18 @@ case class BufferingTokenizer(tokenizer:Tokenizer) extends Tokenizer {
     }
 
   def toBufferedTokenizer():BufferedTokenizer = subBufferingTokenizer match {
-    case None     => BufferedTokenizer(buffer.reverse, tokenizer.moveNext)
+    case None     => BufferedTokenizer(buffer.reverse, tokenizer)
     //TODO must be a faster way here
     case Some(bt) => BufferedTokenizer(buffer.reverse ++ bt.toBufferedTokenizer().buffer, tokenizer)
   }
 }
 
 case class BufferedTokenizer(var buffer:List[Token], tokenizer:Tokenizer) extends Tokenizer {
+  //last element in buffer should be the same as first element in tokenizer
   def head = buffer.head
   def moveNext() = {
     buffer = buffer.tail
-    if (buffer.isEmpty) tokenizer
+    if (buffer.isEmpty) tokenizer.moveNext
     else this
   }
 }

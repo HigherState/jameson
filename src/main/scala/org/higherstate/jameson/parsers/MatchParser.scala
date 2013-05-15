@@ -4,7 +4,7 @@ import scala.util.{Success, Failure, Try}
 import org.higherstate.jameson.Path
 import org.higherstate.jameson.tokenizers._
 import org.higherstate.jameson.exceptions.ConditionalKeyNotFoundException
-import org.higherstate.jameson.exceptions.UnexpectedTokenException
+import org.higherstate.jameson.exceptions.InvalidTokenException
 import org.higherstate.jameson.exceptions.ConditionalKeyMatchNotFoundException
 
 //TODO: limit to map like parsers
@@ -12,13 +12,12 @@ case class MatchParser[T, U](identifierKey:String, identifierParser:Parser[T], d
 
   def parse(tokenizer:Tokenizer, path: Path): Try[U] = {
     val bufferingTokenizer = tokenizer.toBufferingTokenizer()
-    println(bufferingTokenizer.head)
     bufferingTokenizer.head match {
       case ObjectStartToken => findMatch(bufferingTokenizer.moveNext(), path).flatMap{ key =>
         matchParsers.get(key).map(_.parse(bufferingTokenizer.toBufferedTokenizer(), path))
-        .getOrElse(Failure(ConditionalKeyMatchNotFoundException(identifierKey, path)))
+        .getOrElse(Failure(ConditionalKeyMatchNotFoundException(this, identifierKey, path)))
       }
-      case token            => Failure(UnexpectedTokenException("Match expected an object start token", token, path))
+      case token            => Failure(InvalidTokenException(this, "Match expected an object start token", token, path))
     }
   }
 
@@ -26,8 +25,8 @@ case class MatchParser[T, U](identifierKey:String, identifierParser:Parser[T], d
   private def findMatch(tokenizer:Tokenizer, path: Path):Try[T] = tokenizer.head match {
     case KeyToken(key) if key == identifierKey => identifierParser.parse(tokenizer.moveNext(), path + key)
     case KeyToken(key)                         => findMatch(tokenizer.dropNext(), path)
-    case ObjectEndToken                        => default.map(Success(_)).getOrElse(Failure(ConditionalKeyNotFoundException(identifierKey, path)))
-    case token                                 => Failure(UnexpectedTokenException("Expected a key or object end token", token, path))
+    case ObjectEndToken                        => default.map(Success(_)).getOrElse(Failure(ConditionalKeyNotFoundException(this, identifierKey, path)))
+    case token                                 => Failure(InvalidTokenException(this, "Expected a key or object end token", token, path))
   }
 
 
@@ -40,9 +39,9 @@ case class PartialParser[T, U](identifierKey:String, identifierParser:Parser[T],
     bufferingTokenizer.head match {
       case ObjectStartToken => findMatch(bufferingTokenizer.moveNext(), path).flatMap{ key =>
         matchParsers.lift(key).map(_.parse(bufferingTokenizer.toBufferedTokenizer(), path))
-          .getOrElse(Failure(ConditionalKeyMatchNotFoundException(identifierKey, path)))
+          .getOrElse(Failure(ConditionalKeyMatchNotFoundException(this, identifierKey, path)))
       }
-      case token            => Failure(UnexpectedTokenException("Match expected an object start token", token, path))
+      case token            => Failure(InvalidTokenException(this, "Match expected an object start token", token, path))
     }
   }
 
@@ -50,8 +49,8 @@ case class PartialParser[T, U](identifierKey:String, identifierParser:Parser[T],
   private def findMatch(tokenizer:Tokenizer, path: Path):Try[T] = tokenizer.head match {
     case KeyToken(key) if key == identifierKey => identifierParser.parse(tokenizer.moveNext(), path + key)
     case KeyToken(key)                         => findMatch(tokenizer.dropNext(), path)
-    case ObjectEndToken                        => default.map(Success(_)).getOrElse(Failure(ConditionalKeyNotFoundException(identifierKey, path)))
-    case token                                 => Failure(UnexpectedTokenException("Expected a key or object end token", token, path))
+    case ObjectEndToken                        => default.map(Success(_)).getOrElse(Failure(ConditionalKeyNotFoundException(this, identifierKey, path)))
+    case token                                 => Failure(InvalidTokenException(this, "Expected a key or object end token", token, path))
   }
 
 
