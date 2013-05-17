@@ -125,7 +125,7 @@ val parser = ¦¦(||) //This will validate the json is a list of List[Any]
 ```
 
 ####Tuple parser T
-This will parse a json list into a tuple of the type and length defined by the nested parser arguments. The tuple parser supports 
+This will parse a json list into a tuple of the type and length defined by the provided parser arguments. The tuple parser supports 
 parsers with default values to allow for cases where the length of the json list maybe shorter than the number of tuple arguments.
 
 ```scala
