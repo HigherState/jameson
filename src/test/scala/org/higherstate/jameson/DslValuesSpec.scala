@@ -245,4 +245,19 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       T(AsInt, ?(AsBool), ?(AsString)).parse("[123]") mustEqual Success((123, None, None))
     }
   }
+
+  "tuple map parsing" should {
+    "Succeed with a simple 2 tuple" in {
+      T("int" -> AsInt, "string" -> AsString).parse("""{"string":"s","int":1}""") mustEqual Success((1,"s"))
+    }
+    "Succeed with a simple 2 tuple with extra key pairs" in {
+      T("int" -> AsInt, "string" -> AsString).parse("""{"bool":true, "string":"s","list":[1,2,3,4],"int":1}""") mustEqual Success((1,"s"))
+    }
+    "Succeed with a simple 2 tuple with default value" in {
+      T("int" -> ?(AsInt), "string" -> AsString).parse("""{"string":"s"}""") mustEqual Success((None, "s"))
+    }
+    "Succeed with simple 3 tuple" in {
+      T("int" -> AsInt, "string" -> AsString, "bool" -> AsBool).parse("""{"bool":false, "string":"s","int":1}""") mustEqual Success((1,"s", false))
+    }
+  }
 }

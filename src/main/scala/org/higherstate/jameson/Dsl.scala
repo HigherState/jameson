@@ -140,6 +140,11 @@ object Dsl {
   def T[T1,T2,T3,T4](p1:Parser[T1], p2:Parser[T2], p3:Parser[T3], p4:Parser[T4]) = Tuple4ListParser(p1, p2, p3, p4)
   def T[T1,T2,T3,T4,T5](p1:Parser[T1], p2:Parser[T2], p3:Parser[T3], p4:Parser[T4], p5:Parser[T5]) = Tuple5ListParser(p1, p2, p3, p4, p5)
 
+  def T[T1,T2](s1:(String, Parser[T1]), s2:(String, Parser[T2])) = Tuple2MapParser(s1, s2)
+  def T[T1,T2,T3](s1:(String, Parser[T1]), s2:(String, Parser[T2]), s3:(String, Parser[T3])) = Tuple3MapParser(s1, s2, s3)
+  def T[T1,T2,T3, T4](s1:(String, Parser[T1]), s2:(String, Parser[T2]), s3:(String, Parser[T3]), s4:(String, Parser[T4])) = Tuple4MapParser(s1, s2, s3, s4)
+  def T[T1,T2,T3, T4, T5](s1:(String, Parser[T1]), s2:(String, Parser[T2]), s3:(String, Parser[T3]), s4:(String, Parser[T4]), s5:(String, Parser[T5])) = Tuple5MapParser(s1, s2, s3, s4, s5)
+
   def r(regex:String) = RegexValidationParser(regex.r, "Invalid string format.")
   def r(regex:String, message:String) = RegexValidationParser(regex.r, message)
   def r(regex:Regex) = RegexValidationParser(regex, "Invalid string format.")

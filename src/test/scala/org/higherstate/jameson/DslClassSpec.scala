@@ -30,9 +30,11 @@ class DslClassSpec extends WordSpec with MustMatchers  {
     "parse class with multiple possible key values" in {
       >>[Child1](("a"|"b") -> "tInt" -> AsInt).parse("""{"b":3}""") mustEqual (Success(Child1(3)))
     }
-
     "parse class with an internal function piping" in {
       >>[Child3]("int" -> "tInt" -> AsInt |> (_ * 2), "tBool" -> ?(false)).parse("""{"int":12}""")  mustEqual (Success(Child3(24, false)))
+    }
+    "ignore any unrequired key value pairs" in {
+      >>[Child3].parse("""{"tMap":{"key1":"value1","key2":[1,2,3,4]},"tBool":false,"tList":[1,2,[3,4,5],{"k":"v"},4,5], "tInt":3}""") mustEqual Success(Child3(3, false))
     }
   }
 

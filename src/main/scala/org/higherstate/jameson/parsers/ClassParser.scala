@@ -41,10 +41,7 @@ case class ClassParser[+T:TypeTag](selectors:List[Selector[String,_]], registry:
     case KeyToken(key)  => arguments.get(key).map(p => p._1.parse(tokenizer.moveNext(), path + key).flatMap { r =>
       args(p._2) = r
       buildArgs(tokenizer.moveNext, args, path).map(p._2 :: _)
-    }).getOrElse{
-      registry.defaultUnknownParser.parse(tokenizer.moveNext(), path + key) //TODO, implement content skipper to move on tokenizer
-      buildArgs(tokenizer.moveNext(), args, path)
-    }
+    }).getOrElse(buildArgs(tokenizer.dropNext(), args, path))
     case ObjectEndToken => Success(Nil)
     case token          => Failure(InvalidTokenException(this, "Expected key or Object end token", token, path))
   }
@@ -75,10 +72,7 @@ case class EmbeddedClassParser(typeSymbol:TypeSymbol, registry:Registry) extends
     case KeyToken(key)  => arguments.get(key).map(p => p._1.parse(tokenizer.moveNext(), path + key).flatMap { r =>
       args(p._2) = r
       buildArgs(tokenizer.moveNext(), args, path).map(p._2 :: _)
-    }).getOrElse{
-      registry.defaultUnknownParser.parse(tokenizer.moveNext(), path + key) //TODO, implement content skipper to move on tokenizer
-      buildArgs(tokenizer.moveNext, args, path)
-    }
+    }).getOrElse(buildArgs(tokenizer.dropNext, args, path))
     case ObjectEndToken => Success(Nil)
     case token          => Failure(InvalidTokenException(this, "Expected key or Object end token", token, path))
   }

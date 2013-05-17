@@ -28,8 +28,6 @@ case class MatchParser[T, U](identifierKey:String, identifierParser:Parser[T], d
     case ObjectEndToken                        => default.map(Success(_)).getOrElse(Failure(ConditionalKeyNotFoundException(this, identifierKey, path)))
     case token                                 => Failure(InvalidTokenException(this, "Expected a key or object end token", token, path))
   }
-
-
 }
 
 case class PartialParser[T, U](identifierKey:String, identifierParser:Parser[T], default:Option[T], matchParsers:PartialFunction[T, Parser[U]]) extends Parser[U]{
