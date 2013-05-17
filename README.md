@@ -44,7 +44,7 @@ you can then define your own parser validation
 ("key1"|"key2"|"key3") -> "newKey" -> parser/validator  -if there are different possible keys, must provide a new key  
 "key" |> (Any) => T - pipe value into a function with a single any parameter  
 "key" |>> (Any) => T - pipe value into a function with a single any parameter, the key is required  
-"key" -> parser/validator |> (T) => U - pipe value of parser/validator into a function with a single parameter of the same type as the parser output.  
+"key" -> parser/validator[T] |> (T) => U - pipe value of parser/validator into a function with a single parameter of the same type as the parser output.  
 
 ####The following validators are supported out of the box.  
   
@@ -170,8 +170,9 @@ val parser = ><(>>[MyClass1], >>[MyClass2]) // validates as either a mapping int
 ```
 
 ####Matching parser /
-This will parse a json object to a choice of possible parsers depending on a match with an extracted key,value pair. Finding the
-matching key value pair causes localized buffering of the tokens.  A default value can be provided if a key value pair is not found
+This will parse a json object to a choice of possible parsers depending on a match with an extracted key,value pair. A partial function
+can also be applied to the match value.  Finding the matching key value pair causes localized buffering of the tokens.  A default value 
+can be provided if a key value pair is not found.
 
 ```scala
 val parser = /("mapType","open" -> #*(), "closed" -> #*("key" -> AsString)) // selects parser based on "mapType" values "open" or "closed"
