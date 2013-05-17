@@ -178,6 +178,10 @@ val parser = /("mapType","open" -> #*(), "closed" -> #*("key" -> AsString)) // s
 val parser = /("type", "c1" -> >>[MyClass1], "c2" -> >>[MyClass2]) // selects parser based on "type" values "c1" or "c2"
 val parser = /("type", >>[MyClass1], >>[MyClass2]) // selects class parser based on "type" matching against the name of the class, "MyClass1" or "MyClass2"
 val parser = /("type", "MyClass1", >>[MyClass1], >>[MyClass2])// if "type" is not found will match MyClass1
+val parser = /[String,MySubClass]("type"){
+    case "MyClass1"|"Class1" => >>[MyClass1]
+    case _                   => >>[MyClass2]
+}
 ```
 
 [HigherState]: http://higher-state.blogspot.com
