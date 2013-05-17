@@ -21,11 +21,14 @@ To use Jameson simply include a reference to the DSL to create your own parser v
 import org.higherState.jameson.Dsl._
     
 val mapParser = #*("Age" -> ?(AsInt), "Email" -> r("""\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}\b"""), "Name" -> "First Name" -> AsString)    
-val map:Success(Map[String:Any]) = mapParser("""{"Age":3,"Email":"test@jameson.com","Name":"John"}""")
+val map:Success[Map[String:Any]] = mapParser.parse("""{"Age":3,"Email":"test@jameson.com","Name":"John"}""")
     
+val tupleParser = T(AsInt, AsString, AsString)
+val tuple:Success[(Int, String, String)] = tupleParser.parse("""[123, "value1", "value2"]""")
+
 //case class Canine(age:Int, name:String) extends Pet
 val classParser = /("type", "dog" -> >>[Canine], "cat" -> >>[Feline])
-val pet:Success(Pet) = classParser("""{"type":"dog","name":"rufus","age":3}""")
+val pet:Success[Pet] = classParser.parse("""{"type":"dog","name":"rufus","age":3}""")
 ```
 
 you can then define your own parser validation
@@ -60,6 +63,7 @@ AsDateTime  -validates and parsers to a joda.DateTime
 \#* \#! \#^	-these validate and parse to Map[String,Any]  
 ||			-validates and parses to a List  
 ¦¦			-validates and parses to a TraversableOnce  
+T           -validates and parses to a Tuple
 \>>         -validates against a class   
 ?			-validates and parses to Some(value) or None if null is found  
 \><			-validates and parses to Either  
@@ -118,6 +122,15 @@ more elements.  The TraversableOnce parser should be a top level parser only.
 val parser = ¦¦() //This will validate that the  json is a list
 val parser = ¦¦(AsString) //This will validate the json is a list of strings 
 val parser = ¦¦(||) //This will validate the json is a list of List[Any]
+```
+
+####Tuple parser T
+This will parse a json list into a tuple of the type and length defined by the nested parser arguments. The tuple parser supports 
+parsers with default values to allow for cases where the length of the json list maybe shorter than the number of tuple arguments.
+
+```scala
+val parser = T(AsInt, AsBool) //This will validate a json list of 2 elements
+val parser = T(AsInt, ?(AsBool), ?(AsString)) //This will validate a json list of 1, 2, or 3 elements
 ```
 
 ####Case class parser \>>
