@@ -135,6 +135,11 @@ object Dsl {
     ClassParser[T](selectors.toList, registry)
   }
 
+  def T[T1,T2](p1:Parser[T1], p2:Parser[T2]) = Tuple2ListParser(p1, p2)
+  def T[T1,T2,T3](p1:Parser[T1], p2:Parser[T2], p3:Parser[T3]) = Tuple3ListParser(p1, p2, p3)
+  def T[T1,T2,T3,T4](p1:Parser[T1], p2:Parser[T2], p3:Parser[T3], p4:Parser[T4]) = Tuple4ListParser(p1, p2, p3, p4)
+  def T[T1,T2,T3,T4,T5](p1:Parser[T1], p2:Parser[T2], p3:Parser[T3], p4:Parser[T4], p5:Parser[T5]) = Tuple5ListParser(p1, p2, p3, p4, p5)
+
   def r(regex:String) = RegexValidationParser(regex.r, "Invalid string format.")
   def r(regex:String, message:String) = RegexValidationParser(regex.r, message)
   def r(regex:Regex) = RegexValidationParser(regex, "Invalid string format.")
