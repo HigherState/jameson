@@ -168,7 +168,7 @@ If none succeed, a failure is returned.
 
 ```scala
 val parser = ??(>>[MyClass1], >>[MyClass2]) // validates a MyClass1 object if possible, otherwise a MyClass2
-
+```
 
 ####Either parser ><
 This will parse to either the left provided parser or the right provided parser, returning a Left(value) or Right(value) object.
@@ -203,8 +203,8 @@ This will take the result of the previous parser and pipe it into a function wit
 into a function with corresponding arguments.
 
 ```scala
-val parser = AsInt |\> (_ + 6) // Adds 6 to the result of the parser
-val parser = T(AsInt, AsDouble) |\> (_ * _) //multiples both values in parsed array together
+val parser = AsInt |> (_ + 6) // Adds 6 to the result of the parser
+val parser = T(AsInt, AsDouble) |> (_ * _) //multiples both values in parsed array together
 val parser = T("a1" -> AsInt, "a2" -> AsBool, "a3" -> ?(AsString)) |> f(Int, Bool, Option[String]) //pipe parsed object values into a function
 ```
 
