@@ -7,8 +7,6 @@ import scala.reflect.ClassTag
 import org.joda.time.format.DateTimeFormatter
 import org.joda.time.DateTimeZone
 
-
-
 object Dsl {
 
   case class KeyHold(keys:Set[String]) extends AnyVal {
@@ -77,6 +75,22 @@ object Dsl {
   implicit class ParserPipe[T](val self:Parser[T]) extends AnyVal {
     def |>[V](func:T => V) = PipeParser(self, func)
   }
+  implicit class Parser2Pipe[T1, T2](val self:Parser[(T1, T2)]) extends AnyVal {
+    def |>[V](func:(T1, T2) => V) = Pipe2Parser(self, func)
+    def |>[V](func:((T1, T2)) => V) = PipeParser(self, func)
+  }
+  implicit class Parser3Pipe[T1, T2, T3](val self:Parser[(T1, T2, T3)]) extends AnyVal {
+    def |>[V](func:(T1, T2, T3) => V) = Pipe3Parser(self, func)
+    def |>[V](func:((T1, T2, T3)) => V) = PipeParser(self, func)
+  }
+  implicit class Parser4Pipe[T1, T2, T3, T4](val self:Parser[(T1, T2, T3, T4)]) extends AnyVal {
+    def |>[V](func:(T1, T2, T3, T4) => V) = Pipe4Parser(self, func)
+    def |>[V](func:((T1, T2, T3, T4)) => V) = PipeParser(self, func)
+  }
+  implicit class Parser5Pipe[T1, T2, T3, T4, T5](val self:Parser[(T1, T2, T3, T4, T5)]) extends AnyVal {
+    def |>[V](func:(T1, T2, T3, T4, T5) => V) = Pipe5Parser(self, func)
+    def |>[V](func:((T1, T2, T3, T4, T5)) => V) = PipeParser(self, func)
+  }
 
   object || {
     def apply()(implicit registry:Registry) = ListParser[Any](registry.defaultUnknownParser)
@@ -129,6 +143,8 @@ object Dsl {
   def /[T, U](key:String, default:T)(func:PartialFunction[T, Parser[U]])(implicit registry:Registry, typeTag:TypeTag[T]) =
     PartialParser(key, registry[T], Some(default), func)
 
+  def ??[U](leftParser:Parser[U], rightParser:Parser[U]) = TryParser(leftParser, rightParser)
+
   def >>[T <: AnyRef](implicit registry:Registry, typeTag:TypeTag[T]) = ClassParser[T](Nil, registry)
 
   def >>[T <: AnyRef](selectors:Selector[String, _]*)(implicit registry:Registry, typeTag:TypeTag[T]) = {
@@ -163,6 +179,7 @@ object Dsl {
   val AsShort = ShortParser
   val AsString = StringParser
   val AsUUID = UUIDParser
+  def AsMap(implicit registry:Registry) = MapParser[Any](registry.defaultUnknownParser)
   def AsDateTime(implicit dateTimeFormatter:Option[DateTimeFormatter], dateTimeZone:DateTimeZone):DateTimeParser = DateTimeParser()(dateTimeFormatter, dateTimeZone)
 
   def AsAnyRef[T](implicit classTag:ClassTag[T]) = AnyRefParser[T]

@@ -1,9 +1,8 @@
 package org.higherstate.jameson.parsers
 
 import util.Try
-import org.higherstate.jameson.Extensions._
 import org.higherstate.jameson.Path
-import org.higherstate.jameson.tokenizers.{BufferingTokenizer, Tokenizer}
+import org.higherstate.jameson.tokenizers.Tokenizer
 
 case class EitherParser[T, U](leftParser:Parser[T], rightParser:Parser[U]) extends Parser[Either[T,U]] {
 

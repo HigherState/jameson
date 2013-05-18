@@ -8,6 +8,6 @@ import org.higherstate.jameson.exceptions.InvalidTokenException
 case object NullParser extends Parser[Null] {
   def parse(tokenizer:Tokenizer, path: Path) = tokenizer.head match {
     case NullToken => Success(null)
-    case token     => Failure(InvalidTokenException(this, "Expected int token", token, path))
+    case token     => Failure(InvalidTokenException(this, "Expected null token", token, path))
   }
 }

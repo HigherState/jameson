@@ -3,7 +3,6 @@ package org.higherstate.jameson
 import org.scalatest.WordSpec
 import org.higherstate.jameson.DefaultRegistry._
 import org.higherstate.jameson.Dsl._
-import parsers.PartialParser
 import scala.util._
 import java.util
 import org.scalatest.matchers.MustMatchers
@@ -167,6 +166,27 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       val p = ><(>>[Child1], >>[Child2])
       p.parse("""{"tBool":true}""") mustEqual(Success(Right(Child2(true))))
     }
+    "Succeed with nested eithers" in {
+      val p = ><(><(AsInt, AsBool), ><(AsString, AsNull))
+      p("3") mustEqual Success(Left(Left(3)))
+      p("true") mustEqual Success(Left(Right(true)))
+      p("\"text\"") mustEqual Success(Right(Left("text")))
+      p("null") mustEqual Success(Right(Right(null)))
+    }
+    "Succeed with nested eithers and map parsers" in {
+      val mp1 = #*("one" -> AsInt, "two" -> AsInt, "three" -> AsInt)
+      val mp2 = #*("one" -> AsInt, "two" -> AsInt, "three" -> AsBool)
+      val mp3 = #*("one" -> AsInt, "two" -> AsInt, "three" -> AsString)
+      val mp4 = #*("one" -> AsInt, "two" -> AsInt, "three" -> AsNull)
+      val p = ><(><(mp1, mp2), ><(mp3, mp4))
+      val p2 = ><(><(><(mp1, mp2), ><(mp1, mp2)),><(><(mp1, mp2), ><(mp3, mp4)))
+      p("""{"one":1,"two":2,"three":3}""") mustEqual Success(Left(Left(Map("one" -> 1, "two" -> 2, "three" -> 3))))
+      p("""{"one":1,"two":2,"three":true}""") mustEqual Success(Left(Right(Map("one" -> 1, "two" -> 2, "three" -> true))))
+      p("""{"one":1,"two":2,"three":"text"}""") mustEqual Success(Right(Left(Map("one" -> 1, "two" -> 2, "three" -> "text"))))
+      p("""{"one":1,"two":2,"three":null}""") mustEqual Success(Right(Right(Map("one" -> 1, "two" -> 2, "three" -> null))))
+
+      p2("""{"one":1,"two":2,"three":"text"}""") mustEqual Success(Right(Right(Left(Map("one" -> 1, "two" -> 2, "three" -> "text")))))
+    }
   }
 
   "Object parser" should {
@@ -195,6 +215,15 @@ class DslValuesSpec extends WordSpec with MustMatchers {
     }
     "Succeed with a key, remap and a parser" in {
       #*("key" -> "newKey" -> AsInt |> (_ + 4)).parse("""{"key":3}""") mustEqual(Success(Map("newKey" -> 7)))
+    }
+    "Succeed with a list tuple function pipe" in {
+      (T(AsInt, AsLong) |> (_ + _)).parse("""[1,2]""") mustEqual Success(3)
+    }
+    "Succeed with a map tuple function pipe" in {
+      (T("int" -> AsInt, "long" -> AsLong) |> (_ + _)).parse("""{"long":3,"int":7}""") mustEqual Success(10)
+    }
+    "Succeed with a map tuple function which requires a single tuple value" in {
+      (T("int" -> AsInt, "long" -> AsLong) |> ((t:(Int, Long)) => t._1 + t._2)).parse("""{"long":3,"int":7}""") mustEqual Success(10)
     }
   }
 
@@ -246,7 +275,7 @@ class DslValuesSpec extends WordSpec with MustMatchers {
     }
   }
 
-  "tuple map parsing" should {
+  "tuple map parser" should {
     "Succeed with a simple 2 tuple" in {
       T("int" -> AsInt, "string" -> AsString).parse("""{"string":"s","int":1}""") mustEqual Success((1,"s"))
     }
@@ -258,6 +287,28 @@ class DslValuesSpec extends WordSpec with MustMatchers {
     }
     "Succeed with simple 3 tuple" in {
       T("int" -> AsInt, "string" -> AsString, "bool" -> AsBool).parse("""{"bool":false, "string":"s","int":1}""") mustEqual Success((1,"s", false))
+    }
+  }
+
+  "try match parser" should {
+    "Succeed simple left" in {
+      ??(AsInt, AsString).parse("4") mustEqual Success(4)
+    }
+    "Succeed simple right" in {
+      ??(AsInt, AsString).parse("\"test\"") mustEqual Success("test")
+    }
+    "Succeed class left" in {
+      ??(>>[Child1], >>[Child2]).parse("""{"tInt":3}""") mustEqual Success(Child1(3))
+    }
+    "Succeed class right" in {
+      ??(>>[Child1], >>[Child2]).parse("""{"tBool":true}""") mustEqual Success(Child2(true))
+    }
+  }
+
+  "nested parser " should {
+    "handle nested buffering parser" in {
+      val parser = T(AsInt, ><(#*("one" -> AsInt, "three" -> AsBool), #*("one" -> AsInt, "three" -> AsInt)), /("type", "int" -> #^("value" -> AsInt), "either" -> #^("value" -> ><(#*(), AsString))), #!("value" -> AsAny))
+      parser("""[2, {"one":1, "two":2, "three":3},{"value":"text","type":"either"},{"value":false}]""") mustEqual Success((2, Right(Map("one" -> 1, "two" -> 2, "three" -> 3)), Map("value" -> Right("text")), Map("value" -> false)))
     }
   }
 }

@@ -43,14 +43,14 @@ case class BufferingTokenizer(tokenizer:Tokenizer) extends Tokenizer {
   override def toBufferingTokenizer() =
     if (subBufferingTokenizer.nonEmpty) throw new Exception("Cannot buffer twice on the same buffered tokenizer")
     else {
-      subBufferingTokenizer = Some(BufferingTokenizer(this))
+      subBufferingTokenizer = Some(BufferingTokenizer(tokenizer))
       subBufferingTokenizer.get
     }
 
   def toBufferedTokenizer():BufferedTokenizer = subBufferingTokenizer match {
     case None     => BufferedTokenizer(buffer.reverse, tokenizer)
     //TODO must be a faster way here
-    case Some(bt) => BufferedTokenizer(buffer.reverse ++ bt.toBufferedTokenizer().buffer, tokenizer)
+    case Some(bt) => BufferedTokenizer(buffer.reverse ++ bt.toBufferedTokenizer().buffer.tail, tokenizer)
   }
 }
 

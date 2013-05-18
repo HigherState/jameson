@@ -8,7 +8,7 @@ import org.higherstate.jameson.tokenizers._
 case object LongParser extends Parser[Long] {
   def parse(tokenizer:Tokenizer, path: Path) = tokenizer.head match {
     case LongToken(value) => Success(value)
-    case token            => Failure(InvalidTokenException(this, "Expected int token", token, path))
+    case token            => Failure(InvalidTokenException(this, "Expected long token", token, path))
   }
 }
 

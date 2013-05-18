@@ -4,7 +4,8 @@
 
 Jameson builds on [Jackson][] to provide a DSL for [Scala][] which ties validation with 
 deserialization.  Jameson supports deserializing into native Scala Map and Lists as
-well as deserializing a stream into a TraversableOnce, it further supports Tuples, Option and Either types.  
+well as deserializing a stream into a TraversableOnce. Tuples, Option and Either types are also mapped, 
+as well as the ability to pipe values into a function.  
 Jameson can deserialize into case classes and nested case classes. It is fully design to support 
 custom extension.
 
@@ -57,15 +58,16 @@ AsFloat		-validates and parses to Float
 AsDouble	-validates and parses to Double  
 AsChar		-validates and parser to Char  
 AsString	-validates and parses to String  
-AsNull		-validates and parses to null 
-AsAnyRef    -validates and parses embedded objects
-AsDateTime  -validates and parsers to a joda.DateTime
+AsNull		-validates and parses to null  
+AsAnyRef    -validates and parses embedded objects  
+AsDateTime  -validates and parsers to a joda.DateTime  
 \#* \#! \#^	-these validate and parse to Map[String,Any]  
 ||			-validates and parses to a List  
 ¦¦			-validates and parses to a TraversableOnce  
-T           -validates and parses to a Tuple
+T           -validates and parses to a Tuple  
 \>>         -validates against a class   
 ?			-validates and parses to Some(value) or None if null is found  
+??			-validates and parses against the first success parser in the list  
 \><			-validates and parses to Either  
 /			-validates against a key value pair matched parser  
 |\>         -validates and parses into a function  
@@ -125,12 +127,13 @@ val parser = ¦¦(||) //This will validate the json is a list of List[Any]
 ```
 
 ####Tuple parser T
-This will parse a json list into a tuple of the type and length defined by the provided parser arguments. The tuple parser supports 
+This will parse a json array or object into a tuple of the type and length defined by the provided parser arguments. The tuple parser supports 
 parsers with default values to allow for cases where the length of the json list maybe shorter than the number of tuple arguments.
 
 ```scala
 val parser = T(AsInt, AsBool) //This will validate a json list of 2 elements
 val parser = T(AsInt, ?(AsBool), ?(AsString)) //This will validate a json list of 1, 2, or 3 elements
+val parser = T("int" -> AsInt, "bool" -> AsBool) //This will validate an object with keys 'int' and 'bool'
 ```
 
 ####Case class parser \>>
@@ -158,6 +161,15 @@ val parser = ?(AsInt) // validate is null or Int
 val parser = ?(AsDouble, 1.5) // validates is null or double
 ```
 
+####Try parser ??
+This will attempt to parse json into a series of ordered parsers.  The first to succeed returns the successfully parsed result.
+If none succeed, a failure is returned.
+*Currently having only two parsers is supported
+
+```scala
+val parser = ??(>>[MyClass1], >>[MyClass2]) // validates a MyClass1 object if possible, otherwise a MyClass2
+
+
 ####Either parser ><
 This will parse to either the left provided parser or the right provided parser, returning a Left(value) or Right(value) object.
 The parser will try the left parser first, and if it fails, will try the right parser.  This causes localized buffering of
@@ -183,6 +195,17 @@ val parser = /[String,MySubClass]("type"){
     case "MyClass1"|"Class1" => >>[MyClass1]
     case _                   => >>[MyClass2]
 }
+
+```
+
+####Piping to a function parser |\>
+This will take the result of the previous parser and pipe it into a function with a corresponding argument.  If the previous parser is a tuple parser, you can pipe it 
+into a function with corresponding arguments.
+
+```scala
+val parser = AsInt |\> (_ + 6) // Adds 6 to the result of the parser
+val parser = T(AsInt, AsDouble) |\> (_ * _) //multiples both values in parsed array together
+val parser = T("a1" -> AsInt, "a2" -> AsBool, "a3" -> ?(AsString)) |> f(Int, Bool, Option[String]) //pipe parsed object values into a function
 ```
 
 [HigherState]: http://higher-state.blogspot.com
