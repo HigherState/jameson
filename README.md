@@ -6,7 +6,7 @@ Jameson builds on [Jackson][] to provide a DSL for [Scala][] which ties validati
 deserialization.  Jameson supports deserializing into native Scala Map and Lists as
 well as deserializing a stream into a TraversableOnce. Tuples, Option and Either types are also mapped, 
 as well as the ability to pipe values into a function.  
-Jameson can deserialize into case classes and nested case classes. It is fully design to support 
+Jameson can deserialize into case classes and nested case classes. It is fully designed to support 
 custom extension.
 
 Jameson parse returns a scala.util.Try object.  It will stop parsing on the first failure.
