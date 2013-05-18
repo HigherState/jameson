@@ -288,6 +288,12 @@ class DslValuesSpec extends WordSpec with MustMatchers {
     "Succeed with simple 3 tuple" in {
       T("int" -> AsInt, "string" -> AsString, "bool" -> AsBool).parse("""{"bool":false, "string":"s","int":1}""") mustEqual Success((1,"s", false))
     }
+    "Succeed with a piped value" in {
+      T("int" -> AsInt |> (_ + 5), "string" -> AsString).parse("""{"string":"s","int":1}""") mustEqual Success((6,"s"))
+    }
+    "Succeed with a range of keys" in {
+      T(("int"|"INT") -> AsInt, "string" -> AsString).parse("""{"string":"s","INT":1}""") mustEqual Success((1,"s"))
+    }
   }
 
   "try match parser" should {

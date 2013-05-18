@@ -9,67 +9,83 @@ import org.joda.time.DateTimeZone
 
 object Dsl {
 
-  case class KeyHold(keys:Set[String]) extends AnyVal {
-    def |(key:String) = KeyHold(keys + key)
+  case class OrKeys(keys:Set[String]) extends AnyVal {
+    def |(key:String) = OrKeys(keys + key)
+  }
+
+  case class AndKeys(keys:Set[String]) extends AnyVal {
+    def &(key:String) = AndKeys(keys + key)
   }
 
   case class KeysMapped(keys:Set[String], toKey:String)
 
-  case class SelectorInstance[U,T](keys:Set[U], parser:Parser[T], replaceKey:Option[U], isRequired:Boolean) extends Selector[U, T] {
-    def |>[V](func:T => V) = SelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
-    def |>>[V](func:T => V) = SelectorInstance(keys, PipeParser(parser, func), replaceKey, true)
+  case class SelectorInstance[U,T](keys:Set[U], parser:Parser[T]) extends Selector[U,T] {
+    def |>[V](func:T => V) = SelectorInstance(keys, PipeParser(parser, func))
   }
+  case class KeySelectorInstance[U,T](keys:Set[U], parser:Parser[T], replaceKey:Option[U], isRequired:Boolean) extends KeySelector[U, T] {
+    def |>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
+    def |>>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, true)
+  }
+
+  //case class SelectorInstance[U,T](keys:Set[U], parser:Parser[T])
 
   implicit class StringTupleExtension(val self:(String, String)) extends AnyVal {
-    def ->>[T](parser:Parser[T]) = SelectorInstance(Set(self._1), parser, Some(self._2), true)
+    def ->>[T](parser:Parser[T]) = KeySelectorInstance(Set(self._1), parser, Some(self._2), true)
 
-    def |>[V](func:Any => V)(implicit registry:Registry) = SelectorInstance(Set(self._1), PipeParser(AsAny, func), Some(self._2), false)
-    def |>>[V](func:Any => V)(implicit registry:Registry) = SelectorInstance(Set(self._1), PipeParser(AsAny, func), Some(self._2), true)
+    def |>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self._1), PipeParser(AsAny, func), Some(self._2), false)
+    def |>>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self._1), PipeParser(AsAny, func), Some(self._2), true)
   }
 
-  implicit class StringSetTupleExtension(val self:(KeyHold, String)) extends AnyVal {
-    def ->>[T](parser:Parser[T]) = SelectorInstance(self._1.keys, parser, Some(self._2), true)
+  implicit class StringSetTupleExtension(val self:(OrKeys, String)) extends AnyVal {
+    def ->>[T](parser:Parser[T]) = KeySelectorInstance(self._1.keys, parser, Some(self._2), true)
 
-    def |>[V](func:Any => V)(implicit registry:Registry) = SelectorInstance(self._1.keys, PipeParser(AsAny, func), Some(self._2), false)
-    def |>>[V](func:Any => V)(implicit registry:Registry) = SelectorInstance(self._1.keys, PipeParser(AsAny, func), Some(self._2), true)
+    def |>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(self._1.keys, PipeParser(AsAny, func), Some(self._2), false)
+    def |>>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(self._1.keys, PipeParser(AsAny, func), Some(self._2), true)
   }
 
   implicit class AnyExt[U](val self:U) extends AnyVal {
-    def ->>[T](parser:Parser[T]) = SelectorInstance(Set(self), parser, None, true)
+    def ->>[T](parser:Parser[T]) = KeySelectorInstance(Set(self), parser, None, true)
   }
 
-  implicit class UnrequiredMultiKeySelectorWithReplaceKey[T](val self:((KeyHold, String),Parser[T])) extends AnyVal with Selector[String, T] {
+  implicit class SelectorWrapper[T](val self:(OrKeys, Parser[T])) extends AnyVal with Selector[String, T] {
+    def keys = self._1.keys
+    def parser = self._2
+    def |>[V](func:T => V) = SelectorInstance(keys, PipeParser(parser, func))
+  }
+
+  implicit class UnrequiredMultiKeySelectorWithReplaceKey[T](val self:((OrKeys, String),Parser[T])) extends AnyVal with KeySelector[String, T] {
     def keys = self._1._1.keys.map(_.toString)
     def parser = self._2
     def isRequired = false
     def replaceKey = Some(self._1._2)
-    def |>[V](func:T => V) = SelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
-    def |>>[V](func:T => V) = SelectorInstance(keys, PipeParser(parser, func), replaceKey, true)
+    def |>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
+    def |>>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, true)
   }
 
-  implicit class UnrequiredSelectorWithReplaceKey[T](val self:((String, String),Parser[T])) extends AnyVal with Selector[String, T] {
+  implicit class UnrequiredKeySelectorWithReplaceKey[T](val self:((String, String),Parser[T])) extends AnyVal with KeySelector[String, T] {
     def keys = Set(self._1._1)
     def parser = self._2
     def isRequired = false
     def replaceKey = Some(self._1._2)
-    def |>[V](func:T => V) = SelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
-    def |>>[V](func:T => V) = SelectorInstance(keys, PipeParser(parser, func), replaceKey, true)
+    def |>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
+    def |>>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, true)
   }
 
-  implicit class UnrequiredSelector[U, T](val self:(U,Parser[T])) extends AnyVal with Selector[U, T] {
+  implicit class UnrequiredKeySelector[U, T](val self:(U,Parser[T])) extends AnyVal with KeySelector[U, T] {
     def keys = Set(self._1)
     def parser = self._2
     def isRequired = false
     def replaceKey = None
-    def |>[V](func:T => V) = SelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
-    def |>>[V](func:T => V) = SelectorInstance(keys, PipeParser(parser, func), replaceKey, true)
+    def |>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
+    def |>>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, true)
   }
 
   implicit class StringPipe(val self:String) extends AnyVal {
-    def |>[V](func:Any => V)(implicit registry:Registry) = SelectorInstance(Set(self), PipeParser(AsAny, func), None, false)
-    def |>>[V](func:Any => V)(implicit registry:Registry) = SelectorInstance(Set(self), PipeParser(AsAny, func), None, true)
+    def |>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self), PipeParser(AsAny, func), None, false)
+    def |>>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self), PipeParser(AsAny, func), None, true)
 
-    def |(key:String) = KeyHold(Set(self, key))
+    def |(key:String) = OrKeys(Set(self, key))
+    def &(key:String) = AndKeys(Set(self, key))
   }
 
   implicit class ParserPipe[T](val self:Parser[T]) extends AnyVal {
@@ -100,7 +116,7 @@ object Dsl {
 
   object #* {
     def apply()(implicit registry:Registry) = MapParser[Any](registry.defaultUnknownParser)
-    def apply(selectors:Selector[String, _]*)(implicit registry:Registry) = OpenMapParser(selectors.flatMap(s => s.keys.map(_ -> s)).toMap, registry.defaultUnknownParser)
+    def apply(selectors:KeySelector[String, _]*)(implicit registry:Registry) = OpenMapParser(selectors.flatMap(s => s.keys.map(_ -> s)).toMap, registry.defaultUnknownParser)
   }
 
   object ¦¦ {
@@ -109,10 +125,10 @@ object Dsl {
     def apply[T](parser:Parser[T])(implicit registry:Registry, typeTag:TypeTag[T]) = TraversableOnceParser(parser)
   }
 
-  def #!(selector:Selector[String, _], selectors:Selector[String, _]*) =
+  def #!(selector:KeySelector[String, _], selectors:KeySelector[String, _]*) =
     CloseMapParser((selectors :+ selector).flatMap(s => s.keys.map(_ -> s)).toMap)
 
-  def #^(selector:Selector[String, _], selectors:Selector[String, _]*) =
+  def #^(selector:KeySelector[String, _], selectors:KeySelector[String, _]*) =
     DropMapParser((selectors :+ selector).flatMap(s => s.keys.map(_ -> s)).toMap)
 
   object ? {
@@ -147,7 +163,7 @@ object Dsl {
 
   def >>[T <: AnyRef](implicit registry:Registry, typeTag:TypeTag[T]) = ClassParser[T](Nil, registry)
 
-  def >>[T <: AnyRef](selectors:Selector[String, _]*)(implicit registry:Registry, typeTag:TypeTag[T]) = {
+  def >>[T <: AnyRef](selectors:KeySelector[String, _]*)(implicit registry:Registry, typeTag:TypeTag[T]) = {
     ClassParser[T](selectors.toList, registry)
   }
 
@@ -156,10 +172,10 @@ object Dsl {
   def T[T1,T2,T3,T4](p1:Parser[T1], p2:Parser[T2], p3:Parser[T3], p4:Parser[T4]) = Tuple4ListParser(p1, p2, p3, p4)
   def T[T1,T2,T3,T4,T5](p1:Parser[T1], p2:Parser[T2], p3:Parser[T3], p4:Parser[T4], p5:Parser[T5]) = Tuple5ListParser(p1, p2, p3, p4, p5)
 
-  def T[T1,T2](s1:(String, Parser[T1]), s2:(String, Parser[T2])) = Tuple2MapParser(s1, s2)
-  def T[T1,T2,T3](s1:(String, Parser[T1]), s2:(String, Parser[T2]), s3:(String, Parser[T3])) = Tuple3MapParser(s1, s2, s3)
-  def T[T1,T2,T3, T4](s1:(String, Parser[T1]), s2:(String, Parser[T2]), s3:(String, Parser[T3]), s4:(String, Parser[T4])) = Tuple4MapParser(s1, s2, s3, s4)
-  def T[T1,T2,T3, T4, T5](s1:(String, Parser[T1]), s2:(String, Parser[T2]), s3:(String, Parser[T3]), s4:(String, Parser[T4]), s5:(String, Parser[T5])) = Tuple5MapParser(s1, s2, s3, s4, s5)
+  def T[T1,T2](s1:Selector[String, T1], s2:Selector[String, T2]) = Tuple2MapParser(s1, s2)
+  def T[T1,T2,T3](s1:Selector[String, T1], s2:Selector[String, T2], s3:Selector[String, T3]) = Tuple3MapParser(s1, s2, s3)
+  def T[T1,T2,T3, T4](s1:Selector[String, T1], s2:Selector[String, T2], s3:Selector[String, T3], s4:Selector[String, T4]) = Tuple4MapParser(s1, s2, s3, s4)
+  def T[T1,T2,T3, T4, T5](s1:Selector[String, T1], s2:Selector[String, T2], s3:Selector[String, T3], s4:Selector[String, T4], s5:Selector[String, T5]) = Tuple5MapParser(s1, s2, s3, s4, s5)
 
   def r(regex:String) = RegexValidationParser(regex.r, "Invalid string format.")
   def r(regex:String, message:String) = RegexValidationParser(regex.r, message)

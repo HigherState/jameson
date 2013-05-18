@@ -4,10 +4,10 @@ import org.higherstate.jameson.Extensions._
 import org.higherstate.jameson.tokenizers._
 import util.{Failure, Success, Try}
 import org.higherstate.jameson.exceptions.{InvalidTokenException, UnexpectedKeyException, KeyNotFoundException}
-import org.higherstate.jameson.{Selector, Path}
+import org.higherstate.jameson.{KeySelector, Path}
 
 sealed trait NestedMapParser extends Parser[Map[String, Any]] {
-  def selectors:Map[String, Selector[String,_]]
+  def selectors:Map[String, KeySelector[String,_]]
 
   protected lazy val requiredKeys = selectors.filter(s => s._2.isRequired && !s._2.parser.isInstanceOf[HasDefault[_]]).map(_._2.toKey)
   protected lazy val defaultKeys = selectors.filter(s => s._2.isRequired && s._2.parser.isInstanceOf[HasDefault[_]]).map(p => (p._2.toKey, p._2.parser.asInstanceOf[HasDefault[_]].default))
@@ -27,7 +27,7 @@ sealed trait NestedMapParser extends Parser[Map[String, Any]] {
   protected def toMap(tokenizer:Tokenizer, path:Path): Try[Map[String, Any]]
 }
 
-case class OpenMapParser(selectors:Map[String, Selector[String,_]], defaultParser:Parser[Any]) extends NestedMapParser {
+case class OpenMapParser(selectors:Map[String, KeySelector[String,_]], defaultParser:Parser[Any]) extends NestedMapParser {
 
   protected def toMap(tokenizer:Tokenizer, path: Path, hold:Set[String]):Try[(Map[String, Any], Set[String])] = tokenizer.head match {
     case ObjectEndToken => Success((Map.empty[String, Any], hold))
@@ -52,7 +52,7 @@ case class OpenMapParser(selectors:Map[String, Selector[String,_]], defaultParse
   }
 }
 
-case class DropMapParser(selectors:Map[String, Selector[String,_]]) extends NestedMapParser {
+case class DropMapParser(selectors:Map[String, KeySelector[String,_]]) extends NestedMapParser {
 
   protected def toMap(tokenizer:Tokenizer, path: Path, hold:Set[String]):Try[(Map[String, Any], Set[String])] = tokenizer.head match {
     case ObjectEndToken => Success((Map.empty[String, Any], hold))
@@ -71,7 +71,7 @@ case class DropMapParser(selectors:Map[String, Selector[String,_]]) extends Nest
   }
 }
 
-case class CloseMapParser(selectors:Map[String, Selector[String,_]]) extends NestedMapParser {
+case class CloseMapParser(selectors:Map[String, KeySelector[String,_]]) extends NestedMapParser {
 
   protected def toMap(tokenizer:Tokenizer, path: Path, hold:Set[String]):Try[(Map[String, Any], Set[String])] = tokenizer.head match {
     case ObjectEndToken => Success((Map.empty[String, Any], hold))

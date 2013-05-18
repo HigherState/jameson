@@ -4,10 +4,10 @@ import reflect.runtime.universe._
 import util.{Failure, Try}
 import reflect.runtime._
 import org.higherstate.jameson.exceptions.InvalidClassArgsException
-import org.higherstate.jameson.{Selector, Registry, Path}
+import org.higherstate.jameson.{KeySelector, Registry, Path}
 import org.higherstate.jameson.tokenizers._
 
-case class ClassParser[+T:TypeTag](selectors:List[Selector[String,_]], registry:Registry) extends ObjectArgumentsParser[T] {
+case class ClassParser[+T:TypeTag](selectors:List[KeySelector[String,_]], registry:Registry) extends ObjectArgumentsParser[T] {
 
   def getClassName = typeOf[T].typeSymbol.asType.name.toString
 
