@@ -22,14 +22,14 @@ To use Jameson simply include a reference to the DSL to create your own parser v
 import org.higherState.jameson.Dsl._
     
 val mapParser = #*("Age" -> ?(AsInt), "Email" -> r("""\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}\b"""), "Name" -> "First Name" -> AsString)    
-val map:Success[Map[String:Any]] = mapParser.parse("""{"Age":3,"Email":"test@jameson.com","Name":"John"}""")
+val map:Success[Map[String:Any]] = mapParser("""{"Age":3,"Email":"test@jameson.com","Name":"John"}""")
     
 val tupleParser = T(AsInt, AsString, AsString)
-val tuple:Success[(Int, String, String)] = tupleParser.parse("""[123, "value1", "value2"]""")
+val tuple:Success[(Int, String, String)] = tupleParser("""[123, "value1", "value2"]""")
 
 //case class Canine(age:Int, name:String) extends Pet
 val classParser = /("type", "dog" -> >>[Canine], "cat" -> >>[Feline])
-val pet:Success[Pet] = classParser.parse("""{"type":"dog","name":"rufus","age":3}""")
+val pet:Success[Pet] = classParser("""{"type":"dog","name":"rufus","age":3}""")
 ```
 
 you can then define your own parser validation
