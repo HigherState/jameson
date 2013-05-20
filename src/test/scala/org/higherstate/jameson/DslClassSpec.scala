@@ -65,5 +65,17 @@ class DslClassSpec extends WordSpec with MustMatchers  {
     }
   }
 
+  "parse as object" should {
+    val classParser = /("animalType", "dog" -> >>[Canine], "cat" -> >>[Feline])
+    val pet:Try[Object] = classParser("""{"animalType":"dog","name":"rufus","age":3}""")
+    pet mustEqual Success(Canine("dog", "rufus", 3))
+  }
 
 }
+
+
+class Pet(animalType:String, name:String, age:Int)
+
+case class Canine(animalType:String, name:String, age:Int)
+case class Feline(animalType:String, name:String, age:Int)
+

@@ -20,7 +20,7 @@ case class ClassParser[+T:TypeTag](selectors:List[KeySelector[String,_]], regist
     }.toMap
     case _:NullaryMethodType    => Map.empty
   }
-  protected lazy val template:Array[Any] = arguments.map(_._2).toList.sortBy(_._2).map(p => NoArgFound(p._1)).toArray
+  protected lazy val template:Array[Any] = arguments.toList.map(_._2).distinct.sortBy(_._2).map(p => NoArgFound(p._1)).toArray
 
   def parse(tokenizer:Tokenizer, path: Path): Try[T] =
     getArgs(tokenizer, path).flatMap { args =>
