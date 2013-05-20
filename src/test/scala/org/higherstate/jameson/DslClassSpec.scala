@@ -70,7 +70,6 @@ class DslClassSpec extends WordSpec with MustMatchers  {
     val pet:Try[Object] = classParser("""{"animalType":"dog","name":"rufus","age":3}""")
     pet mustEqual Success(Canine("dog", "rufus", 3))
   }
-
 }
 
 

@@ -14,12 +14,18 @@ trait Tokenizer {
     case (token:BadToken) => this
     case ArrayStartToken  => {
       this.moveNext()
-      while(head != ArrayEndToken) drop()
+      while(head != ArrayEndToken) {
+        if (head.isInstanceOf[BadToken] || head == EndToken) return this;
+        drop()
+      }
       this.moveNext()
     }
     case ObjectStartToken => {
       this.moveNext()
-      while(head != ObjectEndToken) moveNext().drop()
+      while(head != ObjectEndToken) {
+        if (head.isInstanceOf[BadToken] || head == EndToken) return this;
+        moveNext().drop()
+      }
       this.moveNext()
     }
     case ArrayEndToken    => FailedTokenizer(BadToken(UnexpectedTokenException("Unexpected token", ArrayEndToken, NoPath)))
@@ -29,6 +35,11 @@ trait Tokenizer {
 }
 
 case class FailedTokenizer(head:BadToken) extends Tokenizer {
+  def moveNext() = this
+}
+
+object EndTokenizer extends Tokenizer {
+  def head = EndToken
   def moveNext() = this
 }
 
