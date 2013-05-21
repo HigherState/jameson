@@ -1,14 +1,13 @@
 package org.higherstate.jameson.parsers
 
-import util.{Failure, Success}
-import org.higherstate.jameson.exceptions.InvalidTokenException
+import util.Success
 import org.higherstate.jameson.Path
-import org.higherstate.jameson.tokenizers._
+import org.higherstate.jameson.extractors.{LongRangeExtractor, LongExtractor}
 
-case object LongParser extends Parser[Long] {
-  def parse(tokenizer:Tokenizer, path: Path) = tokenizer.head match {
-    case LongToken(value) => Success(value)
-    case token            => Failure(InvalidTokenException(this, "Expected long token", token, path))
-  }
+case object LongParser extends LongExtractor[Long] {
+  def apply(value:Long, path:Path) = Success(value)
 }
 
+case class LongRangeParser(greaterThan:Option[Long], greaterThanExclusive:Boolean, lessThan:Option[Long], lessThanExclusive:Boolean) extends LongRangeExtractor[Long] {
+  def apply(value:Long, path:Path) = Success(value)
+}

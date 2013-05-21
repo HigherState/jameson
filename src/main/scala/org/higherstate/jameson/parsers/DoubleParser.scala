@@ -1,15 +1,17 @@
 package org.higherstate.jameson.parsers
 
-import scala.util.{Failure, Success}
+import scala.util.Success
 import org.higherstate.jameson.Path
-import org.higherstate.jameson.tokenizers._
-import org.higherstate.jameson.exceptions.InvalidTokenException
 
-case object DoubleParser extends Parser[Double] {
-  def parse(tokenizer:Tokenizer, path: Path) = tokenizer.head match {
-    case DoubleToken(value) => Success(value)
-    case LongToken(value)   => Success(value)
-    case token              => Failure(InvalidTokenException(this, "Expected double token", token, path))
-  }
+import org.higherstate.jameson.extractors.{DoubleRangeExtractor, DoubleExtractor}
+
+case object DoubleParser extends DoubleExtractor[Double] {
+  def apply(value:Double, path:Path) = Success(value)
 }
+
+case class DoubleRangeParser(greaterThan:Option[Double], greaterThanExclusive:Boolean, lessThan:Option[Double], lessThanExclusive:Boolean) extends DoubleRangeExtractor[Double] {
+  def apply(value:Double, path:Path) = Success(value)
+}
+
+
 

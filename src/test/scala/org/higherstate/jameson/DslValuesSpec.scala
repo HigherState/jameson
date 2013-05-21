@@ -317,4 +317,13 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       parser("""[2, {"one":1, "two":2, "three":3},{"value":"text","type":"either"},{"value":false}]""") mustEqual Success((2, Right(Map("one" -> 1, "two" -> 2, "three" -> 3)), Map("value" -> Right("text")), Map("value" -> false)))
     }
   }
+
+  "Key match parser " should {
+    "handle key finding in order" in {
+      /("tInt" -> >>[Child1], "tBool" -> >>[Child2]).parse("""{"tFloat":12.3,"tInt":123,"tBool":false}""") mustEqual Success(Child1(123))
+    }
+    "handle key finding out of order" in {
+      /("tBool" -> >>[Child2], "tInt" -> >>[Child1]).parse("""{"tFloat":12.3,"tInt":123,"tBool":false}""") mustEqual Success(Child2(false))
+    }
+  }
 }

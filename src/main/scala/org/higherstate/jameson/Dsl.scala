@@ -108,6 +108,15 @@ object Dsl {
     def |>[V](func:((T1, T2, T3, T4, T5)) => V) = PipeParser(self, func)
   }
 
+  case class GreaterThan[T](value:T, exclusive:Boolean)
+  case class LessThan[T](value:T, exclusive:Boolean)
+
+  def >=[T](value:T) = GreaterThan(value, false)
+  def >[T](value:T) = GreaterThan(value, true)
+
+  def <=[T](value:T) = LessThan(value, false)
+  def <[T](value:T) = LessThan(value, true)
+
   object || {
     def apply()(implicit registry:Registry) = ListParser[Any](registry.defaultUnknownParser)
     def apply[T](implicit registry:Registry, typeTag:TypeTag[T]) = ListParser(registry[T])
@@ -159,6 +168,8 @@ object Dsl {
   def /[T, U](key:String, default:T)(func:PartialFunction[T, Parser[U]])(implicit registry:Registry, typeTag:TypeTag[T]) =
     PartialParser(key, registry[T], Some(default), func)
 
+  def /[T](matches:(String, Parser[T])*) = KeyMatcher(matches)
+
   def ??[U](leftParser:Parser[U], rightParser:Parser[U]) = TryParser(leftParser, rightParser)
 
   def >>[T <: AnyRef](implicit registry:Registry, typeTag:TypeTag[T]) = ClassParser[T](Nil, registry)
@@ -187,10 +198,32 @@ object Dsl {
   val AsBool = BooleanParser
   val AsByte = ByteParser
   val AsChar = CharParser
+
   val AsDouble = DoubleParser
+  def AsDouble(greaterThan:GreaterThan[Double]) = DoubleRangeParser(Some(greaterThan.value), greaterThan.exclusive, None, false)
+  def AsDouble(lessThan:LessThan[Double]) = DoubleRangeParser(None, false, Some(lessThan.value), lessThan.exclusive)
+  def AsDouble(greaterThan:GreaterThan[Double], lessThan:LessThan[Double]) = DoubleRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
+  def AsDouble(lessThan:LessThan[Double], greaterThan:GreaterThan[Double]) = DoubleRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
+
   val AsFloat = FloatParser
+  def AsFloat(greaterThan:GreaterThan[Float]) = FloatRangeParser(Some(greaterThan.value), greaterThan.exclusive, None, false)
+  def AsFloat(lessThan:LessThan[Float]) = FloatRangeParser(None, false, Some(lessThan.value), lessThan.exclusive)
+  def AsFloat(greaterThan:GreaterThan[Float], lessThan:LessThan[Float]) = FloatRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
+  def AsFloat(lessThan:LessThan[Float], greaterThan:GreaterThan[Float]) = FloatRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
+
+
   val AsInt = IntParser
+  def AsInt(greaterThan:GreaterThan[Int]) = IntRangeParser(Some(greaterThan.value), greaterThan.exclusive, None, false)
+  def AsInt(lessThan:LessThan[Int]) = IntRangeParser(None, false, Some(lessThan.value), lessThan.exclusive)
+  def AsInt(greaterThan:GreaterThan[Int], lessThan:LessThan[Int]) = IntRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
+  def AsInt(lessThan:LessThan[Int], greaterThan:GreaterThan[Int]) = IntRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
+
   val AsLong = LongParser
+  def AsLong(greaterThan:GreaterThan[Long]) = DoubleRangeParser(Some(greaterThan.value), greaterThan.exclusive, None, false)
+  def AsLong(lessThan:LessThan[Long]) = DoubleRangeParser(None, false, Some(lessThan.value), lessThan.exclusive)
+  def AsLong(greaterThan:GreaterThan[Long], lessThan:LessThan[Long]) = LongRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
+  def AsLong(lessThan:LessThan[Long], greaterThan:GreaterThan[Long]) = LongRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
+
   val AsNull = NullParser
   val AsShort = ShortParser
   val AsString = StringParser

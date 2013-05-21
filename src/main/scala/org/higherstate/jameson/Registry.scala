@@ -22,6 +22,4 @@ trait Registry {
 
   def get[T:TypeTag]:Option[Parser[T]] = classParsers.get(typeOf[T].typeSymbol.asType).map(_.asInstanceOf[Parser[T]])
   def get(typeSymbol:TypeSymbol):Option[Parser[_]] = classParsers.get(typeSymbol)
-
-
 }
