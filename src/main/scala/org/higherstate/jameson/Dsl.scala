@@ -6,6 +6,7 @@ import scala.util.matching.Regex
 import scala.reflect.ClassTag
 import org.joda.time.format.DateTimeFormatter
 import org.joda.time.DateTimeZone
+import org.higherstate.jameson.extractors.{LongRangeExtractor, DoubleRangeExtractor}
 
 object Dsl {
 
@@ -108,15 +109,6 @@ object Dsl {
     def |>[V](func:((T1, T2, T3, T4, T5)) => V) = PipeParser(self, func)
   }
 
-  case class GreaterThan[T](value:T, exclusive:Boolean)
-  case class LessThan[T](value:T, exclusive:Boolean)
-
-  def >=[T](value:T) = GreaterThan(value, false)
-  def >[T](value:T) = GreaterThan(value, true)
-
-  def <=[T](value:T) = LessThan(value, false)
-  def <[T](value:T) = LessThan(value, true)
-
   object || {
     def apply()(implicit registry:Registry) = ListParser[Any](registry.defaultUnknownParser)
     def apply[T](implicit registry:Registry, typeTag:TypeTag[T]) = ListParser(registry[T])
@@ -198,38 +190,76 @@ object Dsl {
   val AsBool = BooleanParser
   val AsByte = ByteParser
   val AsChar = CharParser
-
   val AsDouble = DoubleParser
-  def AsDouble(greaterThan:GreaterThan[Double]) = DoubleRangeParser(Some(greaterThan.value), greaterThan.exclusive, None, false)
-  def AsDouble(lessThan:LessThan[Double]) = DoubleRangeParser(None, false, Some(lessThan.value), lessThan.exclusive)
-  def AsDouble(greaterThan:GreaterThan[Double], lessThan:LessThan[Double]) = DoubleRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
-  def AsDouble(lessThan:LessThan[Double], greaterThan:GreaterThan[Double]) = DoubleRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
-
   val AsFloat = FloatParser
-  def AsFloat(greaterThan:GreaterThan[Float]) = FloatRangeParser(Some(greaterThan.value), greaterThan.exclusive, None, false)
-  def AsFloat(lessThan:LessThan[Float]) = FloatRangeParser(None, false, Some(lessThan.value), lessThan.exclusive)
-  def AsFloat(greaterThan:GreaterThan[Float], lessThan:LessThan[Float]) = FloatRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
-  def AsFloat(lessThan:LessThan[Float], greaterThan:GreaterThan[Float]) = FloatRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
-
-
   val AsInt = IntParser
-  def AsInt(greaterThan:GreaterThan[Int]) = IntRangeParser(Some(greaterThan.value), greaterThan.exclusive, None, false)
-  def AsInt(lessThan:LessThan[Int]) = IntRangeParser(None, false, Some(lessThan.value), lessThan.exclusive)
-  def AsInt(greaterThan:GreaterThan[Int], lessThan:LessThan[Int]) = IntRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
-  def AsInt(lessThan:LessThan[Int], greaterThan:GreaterThan[Int]) = IntRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
-
   val AsLong = LongParser
-  def AsLong(greaterThan:GreaterThan[Long]) = DoubleRangeParser(Some(greaterThan.value), greaterThan.exclusive, None, false)
-  def AsLong(lessThan:LessThan[Long]) = DoubleRangeParser(None, false, Some(lessThan.value), lessThan.exclusive)
-  def AsLong(greaterThan:GreaterThan[Long], lessThan:LessThan[Long]) = LongRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
-  def AsLong(lessThan:LessThan[Long], greaterThan:GreaterThan[Long]) = LongRangeParser(Some(greaterThan.value), greaterThan.exclusive, Some(lessThan.value), lessThan.exclusive)
-
   val AsNull = NullParser
   val AsShort = ShortParser
   val AsString = StringParser
   val AsUUID = UUIDParser
   def AsMap(implicit registry:Registry) = MapParser[Any](registry.defaultUnknownParser)
   def AsDateTime(implicit dateTimeFormatter:Option[DateTimeFormatter], dateTimeZone:DateTimeZone):DateTimeParser = DateTimeParser()(dateTimeFormatter, dateTimeZone)
-
   def AsAnyRef[T](implicit classTag:ClassTag[T]) = AnyRefParser[T]
+
+
+  trait GreaterDouble extends DoubleRangeExtractor[Double] {
+    def <(value:Double) = DoubleRangeParser(this.greaterThan, this.greaterThanExclusive, Some(value), true)
+    def <=(value:Double) = DoubleRangeParser(this.greaterThan, this.greaterThanExclusive, Some(value), false)
+  }
+
+  trait LesserDouble extends DoubleRangeExtractor[Double] {
+    def >(value:Double) = DoubleRangeParser(Some(value), true, this.lessThan, this.lessThanExclusive)
+    def >=(value:Double) = DoubleRangeParser(Some(value), false, this.lessThan, this.lessThanExclusive)
+  }
+
+  def >(value:Double) = new DoubleRangeParser(Some(value), true, None, false) with GreaterDouble
+  def >=(value:Double) = new DoubleRangeParser(Some(value), false, None, false) with GreaterDouble
+  def <(value:Double) = new DoubleRangeParser(None, false, Some(value), true) with LesserDouble
+  def <=(value:Double) = new DoubleRangeParser(None, false, Some(value), false) with LesserDouble
+
+  trait GreaterFloat extends DoubleRangeExtractor[Float] {
+    def <(value:Float) = FloatRangeParser(this.greaterThan.map(_.toFloat), this.greaterThanExclusive, Some(value), true)
+    def <=(value:Float) = FloatRangeParser(this.greaterThan.map(_.toFloat), this.greaterThanExclusive, Some(value), false)
+  }
+
+  trait LesserFloat extends DoubleRangeExtractor[Float] {
+    def >(value:Float) = FloatRangeParser(Some(value), true, this.lessThan.map(_.toFloat), this.lessThanExclusive)
+    def >=(value:Float) = FloatRangeParser(Some(value), false, this.lessThan.map(_.toFloat), this.lessThanExclusive)
+  }
+
+  def >(value:Float) = new FloatRangeParser(Some(value), true, None, false) with GreaterFloat
+  def >=(value:Float) = new FloatRangeParser(Some(value), false, None, false) with GreaterFloat
+  def <(value:Float) = new FloatRangeParser(None, false, Some(value), true) with LesserFloat
+  def <=(value:Float) = new FloatRangeParser(None, false, Some(value), false) with LesserFloat
+
+  trait GreaterLong extends LongRangeExtractor[Long] {
+    def <(value:Long) = LongRangeParser(this.greaterThan, this.greaterThanExclusive, Some(value), true)
+    def <=(value:Long) = LongRangeParser(this.greaterThan, this.greaterThanExclusive, Some(value), false)
+  }
+
+  trait LesserLong extends LongRangeExtractor[Long] {
+    def >(value:Long) = LongRangeParser(Some(value), true, this.lessThan, this.lessThanExclusive)
+    def >=(value:Long) = LongRangeParser(Some(value), false, this.lessThan, this.lessThanExclusive)
+  }
+
+  def >(value:Long) = new LongRangeParser(Some(value), true, None, false) with GreaterLong
+  def >=(value:Long) = new LongRangeParser(Some(value), false, None, false) with GreaterLong
+  def <(value:Long) = new LongRangeParser(None, false, Some(value), true) with LesserLong
+  def <=(value:Long) = new LongRangeParser(None, false, Some(value), false) with LesserLong
+
+  trait GreaterInt extends LongRangeExtractor[Int] {
+    def <(value:Int) = IntRangeParser(this.greaterThan.map(_.toInt), this.greaterThanExclusive, Some(value), true)
+    def <=(value:Int) = IntRangeParser(this.greaterThan.map(_.toInt), this.greaterThanExclusive, Some(value), false)
+  }
+
+  trait LesserInt extends LongRangeExtractor[Int] {
+    def >(value:Int) = IntRangeParser(Some(value), true, this.lessThan.map(_.toInt), this.lessThanExclusive)
+    def >=(value:Int) = IntRangeParser(Some(value), false, this.lessThan.map(_.toInt), this.lessThanExclusive)
+  }
+
+  def >(value:Int) = new IntRangeParser(Some(value), true, None, false) with GreaterInt
+  def >=(value:Int) = new IntRangeParser(Some(value), false, None, false) with GreaterInt
+  def <(value:Int) = new IntRangeParser(None, false, Some(value), true) with LesserInt
+  def <=(value:Int) = new IntRangeParser(None, false, Some(value), false) with LesserInt
 }
