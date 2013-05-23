@@ -162,7 +162,7 @@ object Dsl {
 
   def /[T](matches:(String, Parser[T])*) = KeyMatcher(matches)
 
-  def ??[U](leftParser:Parser[U], rightParser:Parser[U]) = TryParser(leftParser, rightParser)
+  def ??[U](parsers:Parser[U]*) = TryParser(parsers)
 
   def >>[T <: AnyRef](implicit registry:Registry, typeTag:TypeTag[T]) = ClassParser[T](Nil, registry)
 

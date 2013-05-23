@@ -10,6 +10,7 @@ import scala.util.Failure
 import org.higherstate.jameson.exceptions.InvalidTokenException
 
 trait ObjectArgumentsParser[+U] extends Parser[U] {
+
   protected def arguments:Map[String, (Parser[_], Int)]
   protected def template:Array[Any]
 
