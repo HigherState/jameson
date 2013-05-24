@@ -133,6 +133,9 @@ object Dsl {
     DropMapParser((selectors :+ selector).flatMap(s => s.keys.map(_ -> s)).toMap)
 
   object ? {
+    def apply[T](parser:Parser[T]) = OptionParser(parser)
+    def apply[T](parser:Parser[T], default:T) = OrElseParser(parser, default)
+
     def apply[T <: Any](implicit registry:Registry, typeTag:TypeTag[T]) = OptionParser(registry.get[T].getOrElse(ClassParser[T](Nil, registry)))
     def apply[T <: AnyRef](selectors:KeySelector[String, _]*)(implicit registry:Registry, typeTag:TypeTag[T]) = OptionParser(ClassParser[T](selectors.toList, registry))
     def apply[T <: Any](default:T)(implicit registry:Registry, typeTag:TypeTag[T]) = OrElseParser(registry.get[T].getOrElse(ClassParser[T](Nil, registry)), default)
