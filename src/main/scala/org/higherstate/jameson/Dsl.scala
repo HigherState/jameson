@@ -33,15 +33,15 @@ object Dsl {
   implicit class StringTupleExtension(val self:(String, String)) extends AnyVal {
     def ->>[T](parser:Parser[T]) = KeySelectorInstance(Set(self._1), parser, Some(self._2), true)
 
-    def |>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self._1), PipeParser(AsAny, func), Some(self._2), false)
-    def |>>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self._1), PipeParser(AsAny, func), Some(self._2), true)
+    def |>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self._1), PipeParser(registry.defaultUnknownParser, func), Some(self._2), false)
+    def |>>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self._1), PipeParser(registry.defaultUnknownParser, func), Some(self._2), true)
   }
 
   implicit class StringSetTupleExtension(val self:(OrKeys, String)) extends AnyVal {
     def ->>[T](parser:Parser[T]) = KeySelectorInstance(self._1.keys, parser, Some(self._2), true)
 
-    def |>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(self._1.keys, PipeParser(AsAny, func), Some(self._2), false)
-    def |>>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(self._1.keys, PipeParser(AsAny, func), Some(self._2), true)
+    def |>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(self._1.keys, PipeParser(registry.defaultUnknownParser, func), Some(self._2), false)
+    def |>>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(self._1.keys, PipeParser(registry.defaultUnknownParser, func), Some(self._2), true)
   }
 
   implicit class AnyExt[U](val self:U) extends AnyVal {
@@ -82,8 +82,8 @@ object Dsl {
   }
 
   implicit class StringPipe(val self:String) extends AnyVal {
-    def |>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self), PipeParser(AsAny, func), None, false)
-    def |>>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self), PipeParser(AsAny, func), None, true)
+    def |>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self), PipeParser(registry.defaultUnknownParser, func), None, false)
+    def |>>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self), PipeParser(registry.defaultUnknownParser, func), None, true)
 
     def |(key:String) = OrKeys(Set(self, key))
     def &(key:String) = AndKeys(Set(self, key))
@@ -133,13 +133,13 @@ object Dsl {
     DropMapParser((selectors :+ selector).flatMap(s => s.keys.map(_ -> s)).toMap)
 
   object ? {
-    def apply()(implicit registry:Registry) = OptionParser(registry.defaultUnknownParser)
-    def apply(orElse:Any)(implicit registry:Registry) = OrElseParser(registry.defaultUnknownParser, orElse)
-    def apply[U](parser:Parser[U]) = OptionParser(parser)
-    def apply[U](parser:Parser[U], orElse:U) = OrElseParser(parser, orElse)
+    def apply[T <: Any](implicit registry:Registry, typeTag:TypeTag[T]) = OptionParser(registry.get[T].getOrElse(ClassParser[T](Nil, registry)))
+    def apply[T <: AnyRef](selectors:KeySelector[String, _]*)(implicit registry:Registry, typeTag:TypeTag[T]) = OptionParser(ClassParser[T](selectors.toList, registry))
+    def apply[T <: Any](default:T)(implicit registry:Registry, typeTag:TypeTag[T]) = OrElseParser(registry.get[T].getOrElse(ClassParser[T](Nil, registry)), default)
+    def apply[T <: AnyRef](selectors:KeySelector[String, _]*)(default:T)(implicit registry:Registry, typeTag:TypeTag[T]) = OrElseParser(ClassParser[T](selectors.toList, registry), default)
   }
 
-  def ><[T,U](leftParser:Parser[T], rightParser:Parser[U]) = EitherParser(leftParser, rightParser)
+  def ^[T,U](leftParser:Parser[T], rightParser:Parser[U]) = EitherParser(leftParser, rightParser)
 
   //maybe defaults should be extractors...
   def /[T, U](key:String, selectors:Selector[T, U]*)(implicit registry:Registry, typeTag:TypeTag[T]) =
@@ -164,11 +164,22 @@ object Dsl {
 
   def ??[U](parsers:Parser[U]*) = TryParser(parsers)
 
-  def >>[T <: AnyRef](implicit registry:Registry, typeTag:TypeTag[T]) = ClassParser[T](Nil, registry)
 
-  def >>[T <: AnyRef](selectors:KeySelector[String, _]*)(implicit registry:Registry, typeTag:TypeTag[T]) = {
-    ClassParser[T](selectors.toList, registry)
-  }
+  def as[T <: Any](implicit registry:Registry, typeTag:TypeTag[T]) = registry.get[T].getOrElse(ClassParser[T](Nil, registry))
+
+  def as[T <: AnyRef](selectors:KeySelector[String, _]*)(implicit registry:Registry, typeTag:TypeTag[T]) = ClassParser[T](selectors.toList, registry)
+
+
+
+  def getAs[T <: Any](implicit registry:Registry, typeTag:TypeTag[T]) = OptionParser(registry.get[T].getOrElse(ClassParser[T](Nil, registry)))
+
+  def getAs[T <: AnyRef](selectors:KeySelector[String, _]*)(implicit registry:Registry, typeTag:TypeTag[T]) = OptionParser(ClassParser[T](selectors.toList, registry))
+
+
+  def getAsOrElse[T <: Any](default:T)(implicit registry:Registry, typeTag:TypeTag[T]) = OrElseParser(registry.get[T].getOrElse(ClassParser[T](Nil, registry)), default)
+
+  def getAsOrElse[T <: AnyRef](selectors:KeySelector[String, _]*)(default:T)(implicit registry:Registry, typeTag:TypeTag[T]) = OrElseParser(ClassParser[T](selectors.toList, registry), default)
+
 
   def T[T1,T2](p1:Parser[T1], p2:Parser[T2]) = Tuple2ListParser(p1, p2)
   def T[T1,T2,T3](p1:Parser[T1], p2:Parser[T2], p3:Parser[T3]) = Tuple3ListParser(p1, p2, p3)
@@ -185,20 +196,6 @@ object Dsl {
   def r(regex:Regex) = RegexValidationParser(regex, "Invalid string format.")
   def r(regex:Regex, message:String) = RegexValidationParser(regex, message)
 
-  def AsAny(implicit registry:Registry) = AnyParser(registry)
-  def AsAnyVal(implicit registry:Registry) = AnyValParser(registry)
-  val AsBool = BooleanParser
-  val AsByte = ByteParser
-  val AsChar = CharParser
-  val AsDouble = DoubleParser
-  val AsFloat = FloatParser
-  val AsInt = IntParser
-  val AsLong = LongParser
-  val AsNull = NullParser
-  val AsShort = ShortParser
-  val AsString = StringParser
-  val AsUUID = UUIDParser
-  def AsMap(implicit registry:Registry) = MapParser[Any](registry.defaultUnknownParser)
   def AsDateTime(implicit dateTimeFormatter:Option[DateTimeFormatter], dateTimeZone:DateTimeZone):DateTimeParser = DateTimeParser()(dateTimeFormatter, dateTimeZone)
   def AsAnyRef[T](implicit classTag:ClassTag[T]) = AnyRefParser[T]
 

@@ -27,6 +27,7 @@ trait DefaultRegistryValues extends Registry {
 
   def classParsers:Map[TypeSymbol, Parser[_]] = Map(
     ts[Any] -> AnyParser(this),
+    ts[AnyVal] -> AnyValParser(this),
     ts[Null] -> NullParser,
     ts[Boolean] -> BooleanParser,
     ts[Char] -> CharParser,
