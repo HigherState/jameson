@@ -24,7 +24,7 @@ case class ClassParser[+T:TypeTag](selectors:List[KeySelector[String,_]], regist
 
   def parse(tokenizer:Tokenizer, path: Path): Try[T] =
     getArgs(tokenizer, path).flatMap { args =>
-      Try(currentMirror.reflectClass(typeOf[T].typeSymbol.asClass).reflectConstructor(constr).apply(args:_*).asInstanceOf[T]).orElse(Failure(InvalidClassArgsException(this, path)))
+      Try(currentMirror.reflectClass(typeOf[T].typeSymbol.asClass).reflectConstructor(constr).apply(args:_*).asInstanceOf[T]).orElse(Failure(InvalidClassArgsException(this, args, path)))
     }
 }
 
@@ -41,6 +41,6 @@ case class EmbeddedClassParser(typeSymbol:TypeSymbol, registry:Registry) extends
 
   def parse(tokenizer:Tokenizer, path: Path): Try[Any] =
     getArgs(tokenizer, path).flatMap { args =>
-      Try(currentMirror.reflectClass(typeSymbol.asClass).reflectConstructor(constr).apply(args:_*)).orElse(Failure(InvalidClassArgsException(this, path)))
+      Try(currentMirror.reflectClass(typeSymbol.asClass).reflectConstructor(constr).apply(args:_*)).orElse(Failure(InvalidClassArgsException(this, args, path)))
     }
 }
