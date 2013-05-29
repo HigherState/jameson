@@ -8,7 +8,7 @@ trait StringValidator extends Validator {
 
   def apply(value:Any, path:Path) = value match {
     case n:String => validate(n, path)
-    case value    => Some(InvalidValueException(this, "Value is non-numeric", value, path))
+    case value    => Some(InvalidValueException(this, "Value is not text", value, path))
   }
 
   protected def validate(value:String, path:Path):Option[Throwable]

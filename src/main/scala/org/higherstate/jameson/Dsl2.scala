@@ -9,93 +9,93 @@ object Dsl2 {
 
   case class OrKeys(keys:Set[String]) extends AnyVal {
     def |(key:String) = OrKeys(keys + key)
+    def ->(key:String)(implicit registry:Registry) = UnknownKeySelector(keys, Some(key), registry.defaultUnknownParser)
   }
 
   implicit class ImplicitString(val self:String) extends AnyVal {
-    def required(implicit registry:Registry) = RequiredUnknownKeySelector(Set(self), None, registry.defaultUnknownParser)
     def |(key:String) = OrKeys(Set(self,key))
     def ->(key:String)(implicit registry:Registry) = UnknownKeySelector(Set(self), None, registry.defaultUnknownParser)
-    def ->[T](parser:Parser[T])(implicit registry:Registry) = UnrequiredKeySelector(Set(self), None, parser)
+    def ->[T](parser:Parser[T])(implicit registry:Registry) = ParserKeySelector(Set(self), None, parser, false)
 
+    def is(required:IsRequired)(implicit registry:Registry) = ParserKeySelector(Set(self), None, registry.defaultUnknownParser, true)
   }
 
-  implicit class ImplicitKeysTuple(val self:(OrKeys, String)) extends AnyVal {
-    def required(implicit registry:Registry) = RequiredKeySelector(self._1.keys, Some(self._2), registry.defaultUnknownParser)
-    def ->[T](parser:Parser[T])(implicit registry:Registry) = UnrequiredKeySelector(self._1.keys, Some(self._2), parser)
-  }
+//  implicit class ImplicitOrKeysString(val self:(OrKeys,String)) extends AnyVal {
+//    def ->[T](parser:Parser[T])(implicit registry:Registry) = ParserKeySelector(self._1.keys, Some(self._2), parser, false)
+//    def is(required:IsRequired)(implicit registry:Registry) = ParserKeySelector(self._1.keys, Some(self._2), registry.defaultUnknownParser, true)
+//  }
+
 
   trait KeySelectorExt[+T] extends Any with KeySelector[String, T] {
-    def map[V](func:T => V) = UnrequiredMapSelectorInstance(keys, PipeParser(parser, func), replaceKey)
-
-    protected def validatorParser(validator:Validator) = parser match {
-      case ValidatorParser(p, v) => ValidatorParser(p, validator :: v)
-      case parser                => ValidatorParser(parser, List(validator))
-    }
+    def map[V](func:T => V) = ParserKeySelector(keys, replaceKey, PipeParser(parser, func), isRequired)
   }
+
+  trait IsRequired
+  case object required extends IsRequired
 
   trait IsValidator
   case object email extends IsValidator
-  case object required extends IsValidator
   case object nonempty extends IsValidator
   case object empty extends IsValidator
   case object excludekeys extends IsValidator
 
-  case class UnknownKeySelector[T](keys:Set[String], replaceKey:Option[String], parser:Parser[T]) extends KeySelectorExt[T] {
-    def maxlength(length:Int) = copy(parser = validatorParser(MaxLength(length)))
-    def minlength(length:Int) = copy(parser = validatorParser(MinLength(length)))
-    def regex(regex:String) = copy(parser = validatorParser(RegEx(regex.r)))
-    def email() = copy(parser = validatorParser(IsEmail))
-    def >=(compare:Number) = copy(parser = validatorParser(GreaterThanEquals(compare)))
-    def >(compare:Number) = copy(parser = validatorParser(GreaterThan(compare)))
-    def <=(compare:Number) = copy(parser = validatorParser(LessThanEquals(compare)))
-    def <(compare:Number) = copy(parser = validatorParser(LessThan(compare)))
-    def ->[T](parser:Parser[T])(implicit registry:Registry) = UnrequiredKeySelector(keys, replaceKey, parser)
-    def is(validator:IsValidator) = RequiredUnknownKeySelector(keys, replaceKey, parser)
-    def isRequired = false
-  }
+  trait AddValidator[U, T] {
+    def parser:Parser[U]
+    def maxlength(length:Int) = add(MaxLength(length))
+    def minlength(length:Int) = add(MinLength(length))
+    def regex(regex:String) = add(RegEx(regex.r))
+    def >=(compare:Number) = add(GreaterThanEquals(compare))
+    def >(compare:Number) = add(GreaterThan(compare))
+    def <=(compare:Number) = add(LessThanEquals(compare))
+    def <(compare:Number) = add(LessThan(compare))
 
-  case class RequiredUnknownKeySelector[T](keys:Set[String], replaceKey:Option[String], parser:Parser[T]) extends KeySelectorExt[T] {
-    def isRequired = true
-  }
-
-
-  case class UnrequiredKeySelector[T](keys:Set[String], replaceKey:Option[String], parser:Parser[T]) extends KeySelectorExt[T] {
-    def is(validator:IsValidator) = RequiredKeySelector(keys, replaceKey, parser)
-    def maxlength(length:Int) = copy(parser = validatorParser(MaxLength(length)))
-    def minlength(length:Int) = copy(parser = validatorParser(MinLength(length)))
-    def regex(regex:String) = copy(parser = validatorParser(RegEx(regex.r)))
-    def email() = copy(parser = validatorParser(IsEmail))
-    def >=(compare:Number) = copy(parser = validatorParser(GreaterThanEquals(compare)))
-    def >(compare:Number) = copy(parser = validatorParser(GreaterThan(compare)))
-    def <=(compare:Number) = copy(parser = validatorParser(LessThanEquals(compare)))
-    def <(compare:Number) = copy(parser = validatorParser(LessThan(compare)))
-    def isRequired = false
-  }
-
-  case class RequiredKeySelector[T](keys:Set[String], replaceKey:Option[String], parser:Parser[T]) extends KeySelectorExt[T] {
-    def isRequired = true
-  }
-
-  case class ParserWrapper[T](parser:Parser[T]) extends Parser[T] {
-    def maxlength(length:Int) = ParserWrapper(validatorParser(MaxLength(length)))
-    def minlength(length:Int) = ParserWrapper(validatorParser(MinLength(length)))
-    def regex(regex:String) = ParserWrapper(validatorParser(RegEx(regex.r)))
-    def email() = ParserWrapper(validatorParser(IsEmail))
-    def >=(compare:Number) = ParserWrapper(validatorParser(GreaterThanEquals(compare)))
-    def >(compare:Number) = ParserWrapper(validatorParser(GreaterThan(compare)))
-    def <=(compare:Number) = ParserWrapper(validatorParser(LessThanEquals(compare)))
-    def <(compare:Number) = ParserWrapper(validatorParser(LessThan(compare)))
-    def is(validator:IsValidator) = this
-
-    protected def validatorParser(validator:Validator) = parser match {
-      case ValidatorParser(p, v) => ValidatorParser(p, validator :: v)
-      case parser                => ValidatorParser(parser, List(validator))
+    def is(validator:IsValidator):T = validator match {
+      case `email`        => add(IsEmail)
+      case `nonempty`     => add(MinLength(1))
+      case `empty`        => add(MaxLength(0))
+      case `excludekeys`  => newParser(swapOutOpenMap(parser))
     }
 
-    def map[U](func:T => U) = PipeParser(parser, func)
+    private def swapOutOpenMap[T](parser:Parser[T]):Parser[T] = parser match {
+      case OpenMapParser(s,df)  => DropMapParser(s).asInstanceOf[Parser[T]]
+      case ValidatorParser(p,v) => ValidatorParser(swapOutOpenMap(p), v)
+      case ParserWrapper(p)     => ParserWrapper(swapOutOpenMap(p))
+      case _                    => throw new Exception("Can only use validation excludekeys on a map parser")
+    }
 
+    private def add(validator:Validator) = parser match {
+      case ValidatorParser(p, v) => newParser(ValidatorParser(p, validator :: v))
+      case parser                => newParser(ValidatorParser(parser, List(validator)))
+    }
+    protected def newParser(parser:Parser[U]):T
+
+  }
+
+  trait RequirableAddValidator[U, T] extends AddValidator[U, T] {
+    def is(required:IsRequired) = asRequired
+    protected def asRequired:T
+  }
+
+  case class UnknownKeySelector[T](keys:Set[String], replaceKey:Option[String], parser:Parser[T]) extends KeySelectorExt[T] with RequirableAddValidator[T, ParserKeySelector[T]] {
+    def ->[T](parser:Parser[T])(implicit registry:Registry) = ParserKeySelector(keys, replaceKey, parser, isRequired)
+    protected def newParser(parser:Parser[T]) = ParserKeySelector(keys, replaceKey, parser, isRequired)
+    protected def asRequired = ParserKeySelector(keys, replaceKey, parser, true)
+    def isRequired = false
+  }
+
+
+  case class ParserKeySelector[T](keys:Set[String], replaceKey:Option[String], parser:Parser[T], isRequired:Boolean) extends KeySelectorExt[T] with RequirableAddValidator[T, ParserKeySelector[T]] {
+    protected def newParser(parser:Parser[T]) = ParserKeySelector(keys, replaceKey, parser, isRequired)
+    protected def asRequired = ParserKeySelector(keys, replaceKey, parser, true)
+  }
+
+  case class ParserWrapper[T](parser:Parser[T]) extends Parser[T] with AddValidator[T, ParserWrapper[T]] {
+
+    protected def newParser(parser:Parser[T]) = ParserWrapper(parser)
+    def map[U](func:T => U) = PipeParser(parser, func)
     def parse(tokenizer:Tokenizer, path:Path) = parser.parse(tokenizer, path)
   }
+
   case class Tuple2Wrapper[T1,T2](parser:Parser[(T1,T2)]) extends Parser[(T1, T2)] {
     def map[U](func:(T1,T2) => U) = Pipe2Parser(parser, func)
     def parse(tokenizer:Tokenizer, path:Path) = parser.parse(tokenizer, path)
@@ -111,14 +111,6 @@ object Dsl2 {
   case class Tuple5Wrapper[T1,T2,T3,T4,T5](parser:Parser[(T1,T2,T3,T4,T5)]) extends Parser[(T1, T2, T3, T4, T5)] {
     def map[U](func:(T1,T2,T3,T4,T5) => U) = Pipe5Parser(parser, func)
     def parse(tokenizer:Tokenizer, path:Path) = parser.parse(tokenizer, path)
-  }
-
-  case class UnrequiredMapSelectorInstance[T](keys:Set[String], parser:Parser[T], replaceKey:Option[String]) extends KeySelector[String, T]  {
-    def isRequired = false
-    def is(validator:IsValidator) = RequiredMapSelectorInstance(keys, parser, replaceKey)
-  }
-  case class RequiredMapSelectorInstance[T](keys:Set[String], parser:Parser[T], replaceKey:Option[String]) extends KeySelector[String, T] {
-    def isRequired = true
   }
 
   object as {
@@ -191,6 +183,13 @@ object Dsl2 {
   object asList {
     def apply[T <: Any](implicit registry:Registry, t:TypeTag[T]) = ParserWrapper(ListParser(default[T]))
     def apply[T <: Any](parser:Parser[T]) = ParserWrapper(ListParser(parser))
+  }
+
+  object asMap {
+    def apply[T <: Any](implicit registry:Registry, t:TypeTag[T]) =
+      ParserWrapper(MapParser(default[T]))
+    def apply(selectors:KeySelector[String, _]*)(implicit registry:Registry) =
+      ParserWrapper(OpenMapParser(selectors.flatMap(s => s.keys.map((_, s))).toMap, registry.defaultUnknownParser))
   }
 
   private def default[T](implicit registry:Registry, t:TypeTag[T]) = registry.get[T].getOrElse(ClassParser[T](Nil, registry))
