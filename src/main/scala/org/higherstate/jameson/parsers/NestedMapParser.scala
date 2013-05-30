@@ -9,8 +9,8 @@ import org.higherstate.jameson.{KeySelector, Path}
 sealed trait NestedMapParser extends Parser[Map[String, Any]] {
   def selectors:Map[String, KeySelector[String,_]]
 
-  protected lazy val requiredKeys = selectors.filter(s => s._2.isRequired && !s._2.parser.isInstanceOf[HasDefault[_]]).map(_._2.toKey)
-  protected lazy val defaultKeys = selectors.filter(s => s._2.isRequired && s._2.parser.isInstanceOf[HasDefault[_]]).map(p => (p._2.toKey, p._2.parser.asInstanceOf[HasDefault[_]].default))
+  protected lazy val requiredKeys = selectors.filter(s => s._2.isRequired && !s._2.parser.hasDefault).map(_._2.toKey)
+  protected lazy val defaultKeys = selectors.filter(s => s._2.isRequired).flatMap(s => s._2.parser.default.map(d => s._2.toKey -> d))
 
   def parse(tokenizer:Tokenizer, path: Path): Try[Map[String,Any]] = tokenizer.head match {
     case ObjectStartToken =>

@@ -44,17 +44,14 @@ trait ListArgumentParser[U] extends Parser[U] {
   }
 
   private def buildArgs(p:List[Parser[_]], index:Int, tokenizer:Tokenizer, path:Path):Try[List[Any]] = (tokenizer.head, p) match {
-    case (ArrayEndToken, Nil)                             => Success(Nil)
-    case (ArrayEndToken, (head:HasDefault[_]) :: tail)  => buildArgs(tail, index, tokenizer, path).map(head.default :: _)
-    case (ArrayEndToken, _)                               => Failure(InvalidTokenException(this, "Insufficient arguments for tuple", ArrayEndToken, path))
-    case (token, Nil)                                     => Failure(InvalidTokenException(this, "Expected array end token", token, path + index))
-    case (_, head :: tail)                                => head.parse(tokenizer, path + index).flatMap(h => buildArgs(tail, index + 1, tokenizer.moveNext(), path).map(t => h :: t))
+    case (ArrayEndToken, Nil)                              => Success(Nil)
+    case (ArrayEndToken, head :: tail) if head.hasDefault  => buildArgs(tail, index, tokenizer, path).map(head.default.get :: _)
+    case (ArrayEndToken, _)                                => Failure(InvalidTokenException(this, "Insufficient arguments for tuple", ArrayEndToken, path))
+    case (token, Nil)                                      => Failure(InvalidTokenException(this, "Expected array end token", token, path + index))
+    case (_, head :: tail)                                 => head.parse(tokenizer, path + index).flatMap(h => buildArgs(tail, index + 1, tokenizer.moveNext(), path).map(t => h :: t))
   }
 }
 
 object NoArgFound {
-  def apply[T](parser:Parser[T]) = parser match {
-    case p:HasDefault[T] => p.default
-    case _               => NoArgFound
-  }
+  def apply[T](parser:Parser[T]) = parser.default.getOrElse(NoArgFound)
 }

@@ -8,7 +8,7 @@ import org.higherstate.jameson.exceptions.InvalidTokenException
 import org.higherstate.jameson.exceptions.ConditionalKeyMatchNotFoundException
 
 //TODO: limit to map like parsers
-case class MatchParser[T, U](identifierKey:String, identifierParser:Parser[T], default:Option[T], matchParsers:Map[T, Parser[U]]) extends Parser[U]{
+case class MatchParser[T, U](identifierKey:String, identifierParser:Parser[T], defaultKey:Option[T], matchParsers:Map[T, Parser[U]]) extends Parser[U]{
 
   def parse(tokenizer:Tokenizer, path: Path): Try[U] = tokenizer.head match {
     case ObjectStartToken => {
@@ -26,12 +26,12 @@ case class MatchParser[T, U](identifierKey:String, identifierParser:Parser[T], d
   private def findMatch(tokenizer:Tokenizer, path: Path):Try[T] = tokenizer.head match {
     case KeyToken(key) if key == identifierKey => identifierParser.parse(tokenizer.moveNext(), path + key)
     case KeyToken(key)                         => findMatch(tokenizer.dropNext(), path)
-    case ObjectEndToken                        => default.map(Success(_)).getOrElse(Failure(ConditionalKeyNotFoundException(this, identifierKey, path)))
+    case ObjectEndToken                        => defaultKey.map(Success(_)).getOrElse(Failure(ConditionalKeyNotFoundException(this, identifierKey, path)))
     case token                                 => Failure(InvalidTokenException(this, "Expected a key or object end token", token, path))
   }
 }
 
-case class PartialParser[T, U](identifierKey:String, identifierParser:Parser[T], default:Option[T], matchParsers:PartialFunction[T, Parser[U]]) extends Parser[U]{
+case class PartialParser[T, U](identifierKey:String, identifierParser:Parser[T], defaultKey:Option[T], matchParsers:PartialFunction[T, Parser[U]]) extends Parser[U]{
 
   def parse(tokenizer:Tokenizer, path: Path): Try[U] = tokenizer.head match {
     case ObjectStartToken => {
@@ -48,7 +48,7 @@ case class PartialParser[T, U](identifierKey:String, identifierParser:Parser[T],
   private def findMatch(tokenizer:Tokenizer, path: Path):Try[T] = tokenizer.head match {
     case KeyToken(key) if key == identifierKey => identifierParser.parse(tokenizer.moveNext(), path + key)
     case KeyToken(key)                         => findMatch(tokenizer.dropNext(), path)
-    case ObjectEndToken                        => default.map(Success(_)).getOrElse(Failure(ConditionalKeyNotFoundException(this, identifierKey, path)))
+    case ObjectEndToken                        => defaultKey.map(Success(_)).getOrElse(Failure(ConditionalKeyNotFoundException(this, identifierKey, path)))
     case token                                 => Failure(InvalidTokenException(this, "Expected a key or object end token", token, path))
   }
 

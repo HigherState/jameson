@@ -10,4 +10,6 @@ case class ValidatorParser[+T](parser:Parser[T], validators:List[Validator]) ext
     val r = parser.parse(tokenizer, path)
     validators.flatMap(_.apply(r, path)).headOption.map(Failure(_)).getOrElse(r)
   }
+
+  override def default = parser.default
 }

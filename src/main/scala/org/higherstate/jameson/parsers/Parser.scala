@@ -22,4 +22,7 @@ trait Parser[+U] {
 
   def apply(map:java.util.Map[String, Any]):Try[U] = parse(map)
   def apply(list:java.lang.Iterable[Any]):Try[U] = parse(list)
+
+  def default:Option[U] = None
+  def hasDefault = default.nonEmpty
 }

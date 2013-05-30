@@ -24,7 +24,7 @@ class DslClassSpec extends WordSpec with MustMatchers  {
     "parse class with key remapping" in {
       as[Child1]("Int" -> "tInt" -> as[Int]).parse("""{"Int":3}""") mustEqual (Success(Child1(3)))
     }
-    "parse class with defauly" in {
+    "parse class with default" in {
       as[Child3]("tInt" -> getAsOrElse[Int](5)).parse("""{"tBool":false}""") mustEqual (Success(Child3(5, false)))
     }
     "parse class with multiple possible key values" in {
@@ -43,10 +43,10 @@ class DslClassSpec extends WordSpec with MustMatchers  {
       matchAs("type", "int" -> as[Child1]("value" -> "tInt" -> as[Int]), "bool" -> as[Child2]("value" -> "tBool" -> as[Boolean])).parse("""{"type":"bool","value":false}""") mustEqual (Success(Child2(false)))
     }
 
-    "Handle matching on the class name" in {
-      matchAs("class", as[Child1]("value" -> "tInt" -> as[Int]), as[Child2]("value" -> "tBool" -> as[Boolean]), as[Child3]("value1" -> "tBool" -> as[Boolean], "value2" -> "tInt" -> as[Int]))
-      .parse("""{"class":"Child3", "value1":true,"value2":4}""") mustEqual(Success(Child3(4, true)))
-    }
+//    "Handle matching on the class name" in {
+//      matchAs("class", as[Child1]("value" -> "tInt" -> as[Int]), as[Child2]("value" -> "tBool" -> as[Boolean]), as[Child3]("value1" -> "tBool" -> as[Boolean], "value2" -> "tInt" -> as[Int]))
+//      .parse("""{"class":"Child3", "value1":true,"value2":4}""") mustEqual(Success(Child3(4, true)))
+//    }
 
     "Handle matching with a partial function" in {
       matchAs[String, Collections]("type"){
