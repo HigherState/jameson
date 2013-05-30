@@ -9,6 +9,7 @@ object Dsl2 {
 
   case class OrKeys(keys:Set[String]) extends AnyVal {
     def |(key:String) = OrKeys(keys + key)
+    def ->(key:String)(implicit registry:Registry) = UnknownKeySelector(keys, None, registry.defaultUnknownParser)
   }
 
   implicit class ImplicitString(val self:String) extends AnyVal {
@@ -16,12 +17,10 @@ object Dsl2 {
     def |(key:String) = OrKeys(Set(self,key))
     def ->(key:String)(implicit registry:Registry) = UnknownKeySelector(Set(self), None, registry.defaultUnknownParser)
     def ->[T](parser:Parser[T])(implicit registry:Registry) = UnrequiredKeySelector(Set(self), None, parser)
-
   }
 
   implicit class ImplicitKeysTuple(val self:(OrKeys, String)) extends AnyVal {
     def required(implicit registry:Registry) = RequiredKeySelector(self._1.keys, Some(self._2), registry.defaultUnknownParser)
-    def ->[T](parser:Parser[T])(implicit registry:Registry) = UnrequiredKeySelector(self._1.keys, Some(self._2), parser)
   }
 
   trait KeySelectorExt[+T] extends Any with KeySelector[String, T] {
