@@ -9,8 +9,22 @@ class Dsl2Tests extends FunSuite {
   test("blah") {
     val p = "key" -> as [Int] >= 3 < 4 minlength 4 is email map (_ + 3) is required
 
+<<<<<<< HEAD
     val p3 = "first" -> "second"
+=======
+
+>>>>>>> 31b0fa9589d86b7088023d7509b02747dec2b4c3
     val p2 = asList(as [Int] > 3 <= 10) maxlength 10
+    val p3 = "value" is required
+
+    val p4 = asMap(
+      "int" -> as [Int] > 0 is required,
+      "bob" -> "mildred" is required,
+      "fred" -> getAs[Int],
+      "bobby" is required,
+      ("one"|"two") -> "three" is required
+    ) is excludekeys
+
     p2("[4,5,6]")
     //val t2 = "tuple" -> as [Int, Int] map ((a,b) => a + b) required
     val list = as[Int, Double, Double]
@@ -20,8 +34,6 @@ class Dsl2Tests extends FunSuite {
     //val t2 = as[Int, Boolean, String] map (_ + _ + _)
     println(p)
     println(t)
-
-
   }
 
 

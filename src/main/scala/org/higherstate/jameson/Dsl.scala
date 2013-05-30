@@ -1,265 +1,224 @@
 package org.higherstate.jameson
 
+import org.higherstate.jameson.validators._
 import org.higherstate.jameson.parsers._
 import reflect.runtime.universe._
-import scala.util.matching.Regex
+import org.higherstate.jameson.tokenizers.Tokenizer
 import scala.reflect.ClassTag
-import org.joda.time.format.DateTimeFormatter
-import org.joda.time.DateTimeZone
-import org.higherstate.jameson.extractors.{LongRangeExtractor, DoubleRangeExtractor}
 
 object Dsl {
 
   case class OrKeys(keys:Set[String]) extends AnyVal {
     def |(key:String) = OrKeys(keys + key)
+    def ->(key:String)(implicit registry:Registry) = UnknownKeySelector(keys, Some(key), registry.defaultUnknownParser)
   }
 
-  case class AndKeys(keys:Set[String]) extends AnyVal {
-    def &(key:String) = AndKeys(keys + key)
+  implicit class ImplicitString(val self:String) extends AnyVal {
+    def |(key:String) = OrKeys(Set(self,key))
+    def ->(key:String)(implicit registry:Registry) = UnknownKeySelector(Set(self), None, registry.defaultUnknownParser)
+    def ->[T](parser:Parser[T])(implicit registry:Registry) = ParserKeySelector(Set(self), None, parser, false)
+    def is(required:IsRequired)(implicit registry:Registry) = ParserKeySelector(Set(self), None, registry.defaultUnknownParser, true)
+    def map[V](func:Any => V)(implicit registry:Registry) = ParserKeySelector(Set(self), None, PipeParser(registry.defaultUnknownParser, func), false)
   }
 
-  case class KeysMapped(keys:Set[String], toKey:String)
-
-  case class SelectorInstance[U,T](keys:Set[U], parser:Parser[T]) extends Selector[U,T] {
-    def |>[V](func:T => V) = SelectorInstance(keys, PipeParser(parser, func))
-  }
-  case class KeySelectorInstance[U,T](keys:Set[U], parser:Parser[T], replaceKey:Option[U], isRequired:Boolean) extends KeySelector[U, T] {
-    def |>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
-    def |>>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, true)
+  trait KeySelectorExt[+T] extends Any with KeySelector[String, T] {
+    def map[V](func:T => V) = ParserKeySelector(keys, replaceKey, PipeParser(parser, func), isRequired)
   }
 
-  //case class SelectorInstance[U,T](keys:Set[U], parser:Parser[T])
+  trait IsRequired
+  case object required extends IsRequired
 
-  implicit class StringTupleExtension(val self:(String, String)) extends AnyVal {
-    def ->>[T](parser:Parser[T]) = KeySelectorInstance(Set(self._1), parser, Some(self._2), true)
+  trait IsValidator
+  case object email extends IsValidator
+  case object nonempty extends IsValidator
+  case object empty extends IsValidator
+  case object excludekeys extends IsValidator
 
-    def |>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self._1), PipeParser(registry.defaultUnknownParser, func), Some(self._2), false)
-    def |>>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self._1), PipeParser(registry.defaultUnknownParser, func), Some(self._2), true)
+  trait AddValidator[U, T] {
+    def parser:Parser[U]
+    def maxlength(length:Int) = add(MaxLength(length))
+    def minlength(length:Int) = add(MinLength(length))
+    def regex(regex:String) = add(RegEx(regex.r))
+    def >=(compare:Number) = add(GreaterThanEquals(compare))
+    def >(compare:Number) = add(GreaterThan(compare))
+    def <=(compare:Number) = add(LessThanEquals(compare))
+    def <(compare:Number) = add(LessThan(compare))
+
+    def is(validator:IsValidator):T = validator match {
+      case `email`        => add(IsEmail)
+      case `nonempty`     => add(MinLength(1))
+      case `empty`        => add(MaxLength(0))
+      case `excludekeys`  => newParser(swapOutOpenMap(parser))
+    }
+
+    private def swapOutOpenMap[T](parser:Parser[T]):Parser[T] = parser match {
+      case OpenMapParser(s,df)  => DropMapParser(s).asInstanceOf[Parser[T]]
+      case ValidatorParser(p,v) => ValidatorParser(swapOutOpenMap(p), v)
+      case ParserWrapper(p)     => ParserWrapper(swapOutOpenMap(p))
+      case _                    => throw new Exception("Can only use validation excludekeys on a map parser")
+    }
+
+    private def add(validator:Validator) = parser match {
+      case ValidatorParser(p, v) => newParser(ValidatorParser(p, validator :: v))
+      case parser                => newParser(ValidatorParser(parser, List(validator)))
+    }
+    protected def newParser(parser:Parser[U]):T
+
   }
 
-  implicit class StringSetTupleExtension(val self:(OrKeys, String)) extends AnyVal {
-    def ->>[T](parser:Parser[T]) = KeySelectorInstance(self._1.keys, parser, Some(self._2), true)
-
-    def |>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(self._1.keys, PipeParser(registry.defaultUnknownParser, func), Some(self._2), false)
-    def |>>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(self._1.keys, PipeParser(registry.defaultUnknownParser, func), Some(self._2), true)
+  trait RequirableAddValidator[U, T] extends AddValidator[U, T] {
+    def is(required:IsRequired) = asRequired
+    protected def asRequired:T
   }
 
-  implicit class AnyExt[U](val self:U) extends AnyVal {
-    def ->>[T](parser:Parser[T]) = KeySelectorInstance(Set(self), parser, None, true)
-  }
-
-  implicit class SelectorWrapper[T](val self:(OrKeys, Parser[T])) extends AnyVal with Selector[String, T] {
-    def keys = self._1.keys
-    def parser = self._2
-    def |>[V](func:T => V) = SelectorInstance(keys, PipeParser(parser, func))
-  }
-
-  implicit class UnrequiredMultiKeySelectorWithReplaceKey[T](val self:((OrKeys, String),Parser[T])) extends AnyVal with KeySelector[String, T] {
-    def keys = self._1._1.keys.map(_.toString)
-    def parser = self._2
+  case class UnknownKeySelector[T](keys:Set[String], replaceKey:Option[String], parser:Parser[T]) extends KeySelectorExt[T] with RequirableAddValidator[T, ParserKeySelector[T]] {
+    def ->[T](parser:Parser[T])(implicit registry:Registry) = ParserKeySelector(keys, replaceKey, parser, isRequired)
+    protected def newParser(parser:Parser[T]) = ParserKeySelector(keys, replaceKey, parser, isRequired)
+    protected def asRequired = ParserKeySelector(keys, replaceKey, parser, true)
     def isRequired = false
-    def replaceKey = Some(self._1._2)
-    def |>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
-    def |>>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, true)
   }
 
-  implicit class UnrequiredKeySelectorWithReplaceKey[T](val self:((String, String),Parser[T])) extends AnyVal with KeySelector[String, T] {
-    def keys = Set(self._1._1)
-    def parser = self._2
-    def isRequired = false
-    def replaceKey = Some(self._1._2)
-    def |>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
-    def |>>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, true)
+
+  case class ParserKeySelector[T](keys:Set[String], replaceKey:Option[String], parser:Parser[T], isRequired:Boolean) extends KeySelectorExt[T] with RequirableAddValidator[T, ParserKeySelector[T]] {
+    protected def newParser(parser:Parser[T]) = ParserKeySelector(keys, replaceKey, parser, isRequired)
+    protected def asRequired = ParserKeySelector(keys, replaceKey, parser, true)
   }
 
-  implicit class UnrequiredKeySelector[U, T](val self:(U,Parser[T])) extends AnyVal with KeySelector[U, T] {
-    def keys = Set(self._1)
-    def parser = self._2
-    def isRequired = false
-    def replaceKey = None
-    def |>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
-    def |>>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, true)
+  case class ParserWrapper[T](parser:Parser[T]) extends Parser[T] with AddValidator[T, ParserWrapper[T]] {
+
+    protected def newParser(parser:Parser[T]) = ParserWrapper(parser)
+    def map[U](func:T => U) = PipeParser(parser, func)
+    def parse(tokenizer:Tokenizer, path:Path) = parser.parse(tokenizer, path)
   }
 
-  implicit class StringPipe(val self:String) extends AnyVal {
-    def |>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self), PipeParser(registry.defaultUnknownParser, func), None, false)
-    def |>>[V](func:Any => V)(implicit registry:Registry) = KeySelectorInstance(Set(self), PipeParser(registry.defaultUnknownParser, func), None, true)
-
-    def |(key:String) = OrKeys(Set(self, key))
-    def &(key:String) = AndKeys(Set(self, key))
+  case class Tuple2Wrapper[T1,T2](parser:Parser[(T1,T2)]) extends Parser[(T1, T2)] {
+    def map[U](func:(T1,T2) => U) = Pipe2Parser(parser, func)
+    def map[V](func:((T1, T2)) => V) = PipeParser(parser, func)
+    def parse(tokenizer:Tokenizer, path:Path) = parser.parse(tokenizer, path)
+  }
+  case class Tuple3Wrapper[T1,T2,T3](parser:Parser[(T1,T2,T3)]) extends Parser[(T1, T2, T3)] {
+    def map[U](func:(T1,T2,T3) => U) = Pipe3Parser(parser, func)
+    def map[V](func:((T1, T2, T3)) => V) = PipeParser(parser, func)
+    def parse(tokenizer:Tokenizer, path:Path) = parser.parse(tokenizer, path)
+  }
+  case class Tuple4Wrapper[T1,T2,T3,T4](parser:Parser[(T1,T2,T3,T4)]) extends Parser[(T1, T2, T3, T4)] {
+    def map[U](func:(T1,T2,T3,T4) => U) = Pipe4Parser(parser, func)
+    def map[V](func:((T1, T2, T3, T4)) => V) = PipeParser(parser, func)
+    def parse(tokenizer:Tokenizer, path:Path) = parser.parse(tokenizer, path)
+  }
+  case class Tuple5Wrapper[T1,T2,T3,T4,T5](parser:Parser[(T1,T2,T3,T4,T5)]) extends Parser[(T1, T2, T3, T4, T5)] {
+    def map[U](func:(T1,T2,T3,T4,T5) => U) = Pipe5Parser(parser, func)
+    def map[V](func:((T1, T2, T3, T4, T5)) => V) = PipeParser(parser, func)
+    def parse(tokenizer:Tokenizer, path:Path) = parser.parse(tokenizer, path)
   }
 
-  implicit class ParserPipe[T](val self:Parser[T]) extends AnyVal {
-    def |>[V](func:T => V) = PipeParser(self, func)
-  }
-  implicit class Parser2Pipe[T1, T2](val self:Parser[(T1, T2)]) extends AnyVal {
-    def |>[V](func:(T1, T2) => V) = Pipe2Parser(self, func)
-    def |>[V](func:((T1, T2)) => V) = PipeParser(self, func)
-  }
-  implicit class Parser3Pipe[T1, T2, T3](val self:Parser[(T1, T2, T3)]) extends AnyVal {
-    def |>[V](func:(T1, T2, T3) => V) = Pipe3Parser(self, func)
-    def |>[V](func:((T1, T2, T3)) => V) = PipeParser(self, func)
-  }
-  implicit class Parser4Pipe[T1, T2, T3, T4](val self:Parser[(T1, T2, T3, T4)]) extends AnyVal {
-    def |>[V](func:(T1, T2, T3, T4) => V) = Pipe4Parser(self, func)
-    def |>[V](func:((T1, T2, T3, T4)) => V) = PipeParser(self, func)
-  }
-  implicit class Parser5Pipe[T1, T2, T3, T4, T5](val self:Parser[(T1, T2, T3, T4, T5)]) extends AnyVal {
-    def |>[V](func:(T1, T2, T3, T4, T5) => V) = Pipe5Parser(self, func)
-    def |>[V](func:((T1, T2, T3, T4, T5)) => V) = PipeParser(self, func)
-  }
-
-  object || {
-    def apply()(implicit registry:Registry) = ListParser[Any](registry.defaultUnknownParser)
-    def apply[T](implicit registry:Registry, typeTag:TypeTag[T]) = ListParser(registry[T])
-    def apply[T](parser:Parser[T])(implicit registry:Registry, typeTag:TypeTag[T]) = ListParser[T](parser)
-  }
-
-  object #* {
-    def apply()(implicit registry:Registry) = MapParser[Any](registry.defaultUnknownParser)
-    def apply(selectors:KeySelector[String, _]*)(implicit registry:Registry) = OpenMapParser(selectors.flatMap(s => s.keys.map(_ -> s)).toMap, registry.defaultUnknownParser)
-  }
-
-  object ¦¦ {
-    def apply()(implicit registry:Registry) = TraversableOnceParser[Any](registry.defaultUnknownParser)
-    def apply[T](implicit registry:Registry, typeTag:TypeTag[T]) = TraversableOnceParser[T](registry[T])
-    def apply[T](parser:Parser[T])(implicit registry:Registry, typeTag:TypeTag[T]) = TraversableOnceParser(parser)
+  object as {
+    def apply[T <: Any](implicit registry:Registry, typeTag:TypeTag[T]) = ParserWrapper(default[T])
+    def apply[T <: AnyRef](selectors:KeySelector[String, _]*)(implicit registry:Registry, typeTag:TypeTag[T]) = ParserWrapper(ClassParser[T](selectors.toList, registry))
+    def apply[U <: List[T],T](p:Parser[T]) = ParserWrapper(ListParser(p))
+    def apply[T1,T2](p1:Parser[T1], p2:Parser[T2]) =
+      Tuple2Wrapper(Tuple2ListParser(p1,p2))
+    def apply[T1,T2](s1:KeySelector[String, T1], s2:KeySelector[String, T2]) =
+      Tuple2Wrapper(Tuple2MapParser(s1, s2))
+    def apply[T1,T2](implicit registry:Registry, t1:TypeTag[T1], t2:TypeTag[T2]) =
+      Tuple2Wrapper(Tuple2ListParser(default[T1], default[T2]))
+    def apply[T1,T2,T3](p1:Parser[T1], p2:Parser[T2], p3:Parser[T3]) =
+      Tuple3Wrapper(Tuple3ListParser(p1, p2, p3))
+    def apply[T1,T2,T3](s1:KeySelector[String, T1], s2:KeySelector[String, T2], s3:KeySelector[String, T3]) =
+      Tuple3Wrapper(Tuple3MapParser(s1, s2, s3))
+    def apply[T1,T2,T3](implicit registry:Registry, t1:TypeTag[T1], t2:TypeTag[T2], t3:TypeTag[T3]) =
+      Tuple3Wrapper(Tuple3ListParser(default[T1], default[T2], default[T3]))
+    def apply[T1,T2,T3,T4](p1:Parser[T1], p2:Parser[T2], p3:Parser[T3], p4:Parser[T4]) =
+      Tuple4Wrapper(Tuple4ListParser(p1, p2, p3, p4))
+    def apply[T1,T2,T3,T4](s1:KeySelector[String, T1], s2:KeySelector[String, T2], s3:KeySelector[String, T3], s4:KeySelector[String, T4]) =
+      Tuple4Wrapper(Tuple4MapParser(s1, s2, s3, s4))
+    def apply[T1,T2,T3,T4](implicit registry:Registry, t1:TypeTag[T1], t2:TypeTag[T2], t3:TypeTag[T3], t4:TypeTag[T4]) =
+      Tuple4Wrapper(Tuple4ListParser(default[T1], default[T2], default[T3], default[T4]))
+    def apply[T1,T2,T3,T4,T5](p1:Parser[T1], p2:Parser[T2], p3:Parser[T3], p4:Parser[T4], p5:Parser[T5]) =
+      Tuple5Wrapper(Tuple5ListParser(p1 ,p2, p3, p4, p5))
+    def apply[T1,T2,T3,T4,T5](s1:KeySelector[String, T1], s2:KeySelector[String, T2], s3:KeySelector[String, T3], s4:KeySelector[String, T4], s5:KeySelector[String, T5]) =
+      Tuple5Wrapper(Tuple5MapParser(s1, s2, s3, s4, s5))
+    def apply[T1,T2,T3,T4,T5](implicit registry:Registry, t1:TypeTag[T1], t2:TypeTag[T2], t3:TypeTag[T3], t4:TypeTag[T4], t5:TypeTag[T5]) =
+      Tuple5Wrapper(Tuple5ListParser(default[T1], default[T2], default[T3], default[T4], default[T5]))
   }
 
-  def #!(selector:KeySelector[String, _], selectors:KeySelector[String, _]*) =
-    CloseMapParser((selectors :+ selector).flatMap(s => s.keys.map(_ -> s)).toMap)
-
-  def #^(selector:KeySelector[String, _], selectors:KeySelector[String, _]*) =
-    DropMapParser((selectors :+ selector).flatMap(s => s.keys.map(_ -> s)).toMap)
-
-  object ? {
-    def apply[T](parser:Parser[T]) = OptionParser(parser)
-    def apply[T](parser:Parser[T], default:T) = OrElseParser(parser, default)
-
-    def apply[T <: Any](implicit registry:Registry, typeTag:TypeTag[T]) = OptionParser(registry.get[T].getOrElse(ClassParser[T](Nil, registry)))
-    def apply[T <: AnyRef](selectors:KeySelector[String, _]*)(implicit registry:Registry, typeTag:TypeTag[T]) = OptionParser(ClassParser[T](selectors.toList, registry))
-    def apply[T <: Any](default:T)(implicit registry:Registry, typeTag:TypeTag[T]) = OrElseParser(registry.get[T].getOrElse(ClassParser[T](Nil, registry)), default)
-    def apply[T <: AnyRef](selectors:KeySelector[String, _]*)(default:T)(implicit registry:Registry, typeTag:TypeTag[T]) = OrElseParser(ClassParser[T](selectors.toList, registry), default)
+  object asEither {
+    def apply[T, U](implicit registry:Registry, typeTagT:TypeTag[T], typeTagU:TypeTag[U]) =
+      ParserWrapper(EitherParser(default[T], default[T]))
+    def apply[T, U](left:Parser[T], right:Parser[U]) =
+      ParserWrapper(EitherParser(left, right))
   }
 
-  def ^[T,U](leftParser:Parser[T], rightParser:Parser[U]) = EitherParser(leftParser, rightParser)
-
-  //maybe defaults should be extractors...
-  def /[T, U](key:String, selectors:Selector[T, U]*)(implicit registry:Registry, typeTag:TypeTag[T]) =
-    MatchParser(key, registry[T], None, selectors.flatMap(p => p.keys.map(_ -> p.parser)).toMap)
-
-  def /[U](key:String, classes:ClassParser[U]*)(implicit registry:Registry) =
-    MatchParser(key, registry[String], None, classes.map(p => p.getClassName -> p).toMap)
-
-  def /[T, U](key:String, default:T, selectors:Selector[T, U]*)(implicit registry:Registry, typeTag:TypeTag[T]) =
-    MatchParser(key, registry[T], Some(default), selectors.flatMap(p => p.keys.map(_ -> p.parser)).toMap)
-
-  def /[U](key:String, default:String, classes:ClassParser[U]*)(implicit registry:Registry) =
-    MatchParser(key, registry[String], Some(default), classes.map(p => p.getClassName -> p).toMap)
-
-  def /[T, U](key:String)(func:PartialFunction[T, Parser[U]])(implicit registry:Registry, typeTag:TypeTag[T]) =
-    PartialParser(key, registry[T], None, func)
-
-  def /[T, U](key:String, default:T)(func:PartialFunction[T, Parser[U]])(implicit registry:Registry, typeTag:TypeTag[T]) =
-    PartialParser(key, registry[T], Some(default), func)
-
-  def /[T](matches:(String, Parser[T])*) = KeyMatcher(matches)
-
-  def ??[U](parsers:Parser[U]*) = TryParser(parsers)
-
-
-  def as[T <: Any](implicit registry:Registry, typeTag:TypeTag[T]) = registry.get[T].getOrElse(ClassParser[T](Nil, registry))
-
-  def as[T <: AnyRef](selectors:KeySelector[String, _]*)(implicit registry:Registry, typeTag:TypeTag[T]) = ClassParser[T](selectors.toList, registry)
-
-
-
-  def getAs[T <: Any](implicit registry:Registry, typeTag:TypeTag[T]) = OptionParser(registry.get[T].getOrElse(ClassParser[T](Nil, registry)))
-
-  def getAs[T <: AnyRef](selectors:KeySelector[String, _]*)(implicit registry:Registry, typeTag:TypeTag[T]) = OptionParser(ClassParser[T](selectors.toList, registry))
-
-
-  def getAsOrElse[T <: Any](default:T)(implicit registry:Registry, typeTag:TypeTag[T]) = OrElseParser(registry.get[T].getOrElse(ClassParser[T](Nil, registry)), default)
-
-  def getAsOrElse[T <: AnyRef](selectors:KeySelector[String, _]*)(default:T)(implicit registry:Registry, typeTag:TypeTag[T]) = OrElseParser(ClassParser[T](selectors.toList, registry), default)
-
-
-  def T[T1,T2](p1:Parser[T1], p2:Parser[T2]) = Tuple2ListParser(p1, p2)
-  def T[T1,T2,T3](p1:Parser[T1], p2:Parser[T2], p3:Parser[T3]) = Tuple3ListParser(p1, p2, p3)
-  def T[T1,T2,T3,T4](p1:Parser[T1], p2:Parser[T2], p3:Parser[T3], p4:Parser[T4]) = Tuple4ListParser(p1, p2, p3, p4)
-  def T[T1,T2,T3,T4,T5](p1:Parser[T1], p2:Parser[T2], p3:Parser[T3], p4:Parser[T4], p5:Parser[T5]) = Tuple5ListParser(p1, p2, p3, p4, p5)
-
-  def T[T1,T2](s1:Selector[String, T1], s2:Selector[String, T2]) = Tuple2MapParser(s1, s2)
-  def T[T1,T2,T3](s1:Selector[String, T1], s2:Selector[String, T2], s3:Selector[String, T3]) = Tuple3MapParser(s1, s2, s3)
-  def T[T1,T2,T3, T4](s1:Selector[String, T1], s2:Selector[String, T2], s3:Selector[String, T3], s4:Selector[String, T4]) = Tuple4MapParser(s1, s2, s3, s4)
-  def T[T1,T2,T3, T4, T5](s1:Selector[String, T1], s2:Selector[String, T2], s3:Selector[String, T3], s4:Selector[String, T4], s5:Selector[String, T5]) = Tuple5MapParser(s1, s2, s3, s4, s5)
-
-  def r(regex:String) = RegexValidationParser(regex.r, "Invalid string format.")
-  def r(regex:String, message:String) = RegexValidationParser(regex.r, message)
-  def r(regex:Regex) = RegexValidationParser(regex, "Invalid string format.")
-  def r(regex:Regex, message:String) = RegexValidationParser(regex, message)
-
-  def AsDateTime(implicit dateTimeFormatter:Option[DateTimeFormatter], dateTimeZone:DateTimeZone):DateTimeParser = DateTimeParser()(dateTimeFormatter, dateTimeZone)
-  def AsAnyRef[T](implicit classTag:ClassTag[T]) = AnyRefParser[T]
-
-
-  trait GreaterDouble extends DoubleRangeExtractor[Double] {
-    def <(value:Double) = DoubleRangeParser(this.greaterThan, this.greaterThanExclusive, Some(value), true)
-    def <=(value:Double) = DoubleRangeParser(this.greaterThan, this.greaterThanExclusive, Some(value), false)
+  private trait OptionMethods {
+    def apply[T <: Any](implicit registry:Registry, t:TypeTag[T]) =
+      ParserWrapper(OptionParser(default[T]))
+    def apply[T <: AnyRef](selectors:KeySelector[String, _]*)(implicit registry:Registry, t:TypeTag[T]) =
+      ParserWrapper(OptionParser(ClassParser[T](selectors.toList, registry)))
+    def apply[T](parser:Parser[T]) =
+      ParserWrapper(OptionParser(parser))
   }
 
-  trait LesserDouble extends DoubleRangeExtractor[Double] {
-    def >(value:Double) = DoubleRangeParser(Some(value), true, this.lessThan, this.lessThanExclusive)
-    def >=(value:Double) = DoubleRangeParser(Some(value), false, this.lessThan, this.lessThanExclusive)
+  object getAs extends OptionMethods
+  object asOption extends OptionMethods
+
+  object getAsOrElse {
+    def apply[T <: Any](orElse:T)(implicit registry:Registry, t:TypeTag[T]) =
+      ParserWrapper(OrElseParser(default[T], orElse))
+    def apply[T <: AnyRef](selectors:KeySelector[String, _]*)(orElse:T)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(OrElseParser(ClassParser[T](selectors.toList, registry), orElse))
+    def apply[T](parser:Parser[T], orElse:T) =
+      ParserWrapper(OrElseParser(parser, orElse))
   }
 
-  def >(value:Double) = new DoubleRangeParser(Some(value), true, None, false) with GreaterDouble
-  def >=(value:Double) = new DoubleRangeParser(Some(value), false, None, false) with GreaterDouble
-  def <(value:Double) = new DoubleRangeParser(None, false, Some(value), true) with LesserDouble
-  def <=(value:Double) = new DoubleRangeParser(None, false, Some(value), false) with LesserDouble
-
-  trait GreaterFloat extends DoubleRangeExtractor[Float] {
-    def <(value:Float) = FloatRangeParser(this.greaterThan.map(_.toFloat), this.greaterThanExclusive, Some(value), true)
-    def <=(value:Float) = FloatRangeParser(this.greaterThan.map(_.toFloat), this.greaterThanExclusive, Some(value), false)
+  object asList {
+    def apply[T <: Any](implicit registry:Registry, t:TypeTag[T]) = ParserWrapper(ListParser(default[T]))
+    def apply[T <: Any](parser:Parser[T]) = ParserWrapper(ListParser(parser))
   }
 
-  trait LesserFloat extends DoubleRangeExtractor[Float] {
-    def >(value:Float) = FloatRangeParser(Some(value), true, this.lessThan.map(_.toFloat), this.lessThanExclusive)
-    def >=(value:Float) = FloatRangeParser(Some(value), false, this.lessThan.map(_.toFloat), this.lessThanExclusive)
+  object asStream {
+    def apply[T <: Any](implicit registry:Registry, t:TypeTag[T]) = ParserWrapper(TraversableOnceParser(default[T]))
+    def apply[T <: Any](parser:Parser[T]) = ParserWrapper(TraversableOnceParser(parser))
   }
 
-  def >(value:Float) = new FloatRangeParser(Some(value), true, None, false) with GreaterFloat
-  def >=(value:Float) = new FloatRangeParser(Some(value), false, None, false) with GreaterFloat
-  def <(value:Float) = new FloatRangeParser(None, false, Some(value), true) with LesserFloat
-  def <=(value:Float) = new FloatRangeParser(None, false, Some(value), false) with LesserFloat
-
-  trait GreaterLong extends LongRangeExtractor[Long] {
-    def <(value:Long) = LongRangeParser(this.greaterThan, this.greaterThanExclusive, Some(value), true)
-    def <=(value:Long) = LongRangeParser(this.greaterThan, this.greaterThanExclusive, Some(value), false)
+  object asMap {
+    def apply[T <: Any](implicit registry:Registry, t:TypeTag[T]) =
+      ParserWrapper(MapParser(default[T]))
+    def apply(selectors:KeySelector[String, _]*)(implicit registry:Registry) =
+      ParserWrapper(OpenMapParser(selectors.flatMap(s => s.keys.map((_, s))).toMap, registry.defaultUnknownParser))
   }
 
-  trait LesserLong extends LongRangeExtractor[Long] {
-    def >(value:Long) = LongRangeParser(Some(value), true, this.lessThan, this.lessThanExclusive)
-    def >=(value:Long) = LongRangeParser(Some(value), false, this.lessThan, this.lessThanExclusive)
+  object tryAs {
+    def apply[T](parsers:Parser[T]*) = TryParser(parsers)
+    def apply[T1,T2](implicit registry:Registry, t1:TypeTag[T1], t2:TypeTag[T2]) =
+      TryParser(Seq(default[T1], default[T2]))
+    def apply[T1,T2,T3](implicit registry:Registry, t1:TypeTag[T1], t2:TypeTag[T2], t3:TypeTag[T3]) =
+      TryParser(Seq(default[T1], default[T2], default[T3]))
+    def apply[T1,T2,T3,T4](implicit registry:Registry, t1:TypeTag[T1], t2:TypeTag[T2], t3:TypeTag[T3], t4:TypeTag[T4]) =
+      TryParser(Seq(default[T1], default[T2], default[T3], default[T4]))
+    def apply[T1,T2,T3,T4,T5](implicit registry:Registry, t1:TypeTag[T1], t2:TypeTag[T2], t3:TypeTag[T3], t4:TypeTag[T4], t5:TypeTag[T5]) =
+      TryParser(Seq(default[T1], default[T2], default[T3], default[T4], default[T5]))
   }
 
-  def >(value:Long) = new LongRangeParser(Some(value), true, None, false) with GreaterLong
-  def >=(value:Long) = new LongRangeParser(Some(value), false, None, false) with GreaterLong
-  def <(value:Long) = new LongRangeParser(None, false, Some(value), true) with LesserLong
-  def <=(value:Long) = new LongRangeParser(None, false, Some(value), false) with LesserLong
-
-  trait GreaterInt extends LongRangeExtractor[Int] {
-    def <(value:Int) = IntRangeParser(this.greaterThan.map(_.toInt), this.greaterThanExclusive, Some(value), true)
-    def <=(value:Int) = IntRangeParser(this.greaterThan.map(_.toInt), this.greaterThanExclusive, Some(value), false)
+  object matchAs {
+    def apply[T, U](key:String, selectors:Selector[T, U]*)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      MatchParser(key, registry[T], None, selectors.flatMap(p => p.keys.map(_ -> p.parser)).toMap)
+    def apply[U](key:String, classes:ClassParser[U]*)(implicit registry:Registry) =
+      MatchParser(key, registry[String], None, classes.map(p => p.getClassName -> p).toMap)
+    def apply[T, U](key:String, default:T, selectors:Selector[T, U]*)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      MatchParser(key, registry[T], Some(default), selectors.flatMap(p => p.keys.map(_ -> p.parser)).toMap)
+    def apply[U](key:String, default:String, classes:ClassParser[U]*)(implicit registry:Registry) =
+      MatchParser(key, registry[String], Some(default), classes.map(p => p.getClassName -> p).toMap)
+    def apply[T, U](key:String)(func:PartialFunction[T, Parser[U]])(implicit registry:Registry, typeTag:TypeTag[T]) =
+      PartialParser(key, registry[T], None, func)
+    def apply[T, U](key:String, default:T)(func:PartialFunction[T, Parser[U]])(implicit registry:Registry, typeTag:TypeTag[T]) =
+      PartialParser(key, registry[T], Some(default), func)
+    def apply[T](matches:(String, Parser[T])*) =
+      KeyMatcher(matches)
   }
 
-  trait LesserInt extends LongRangeExtractor[Int] {
-    def >(value:Int) = IntRangeParser(Some(value), true, this.lessThan.map(_.toInt), this.lessThanExclusive)
-    def >=(value:Int) = IntRangeParser(Some(value), false, this.lessThan.map(_.toInt), this.lessThanExclusive)
+  object nestedAs {
+    def apply[T](implicit classTag:ClassTag[T]) = AnyRefParser[T]
   }
 
-  def >(value:Int) = new IntRangeParser(Some(value), true, None, false) with GreaterInt
-  def >=(value:Int) = new IntRangeParser(Some(value), false, None, false) with GreaterInt
-  def <(value:Int) = new IntRangeParser(None, false, Some(value), true) with LesserInt
-  def <=(value:Int) = new IntRangeParser(None, false, Some(value), false) with LesserInt
+  private def default[T](implicit registry:Registry, t:TypeTag[T]) = registry.get[T].getOrElse(ClassParser[T](Nil, registry))
 }
