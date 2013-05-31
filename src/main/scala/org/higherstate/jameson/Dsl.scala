@@ -135,8 +135,16 @@ object Dsl {
   }
 
   object as {
-    def apply[T <: Any](implicit registry:Registry, typeTag:TypeTag[T]) = ParserWrapper(default[T])
-    def apply[T <: AnyRef](selectors:KeySelectorExt[_]*)(implicit registry:Registry, typeTag:TypeTag[T]) = ParserWrapper(ClassParser[T](selectors.toList, registry))
+    def apply[T <: Any](implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(default[T])
+    def apply[T <: AnyRef](selectors:KeySelectorExt[_]*)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(ClassParser[T](selectors.toList, registry))
+    def apply[T <: AnyRef](selectorsList:Seq[KeySelectorExt[_]], selectors:KeySelectorExt[_]*)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(ClassParser[T](selectorsList.toList ++ selectors.toList, registry))
+    def apply[T <: AnyRef](selectorsList1:Seq[KeySelectorExt[_]], selectorsList2:Seq[KeySelectorExt[_]], selectors:KeySelectorExt[_]*)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(ClassParser[T](selectorsList1.toList ++ selectorsList2.toList ++ selectors.toList, registry))
+    def apply[T <: AnyRef](selectorsList1:Seq[KeySelectorExt[_]], selectorsList2:Seq[KeySelectorExt[_]], selectorsList3:Seq[KeySelectorExt[_]], selectors:KeySelectorExt[_]*)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(ClassParser[T](selectorsList1.toList ++ selectorsList2.toList ++ selectorsList3.toList ++ selectors.toList, registry))
     def apply[U <: List[T],T](p:Parser[T]) = ParserWrapper(ListParser(p))
   }
   object asTuple {
@@ -178,6 +186,14 @@ object Dsl {
       ParserWrapper(OptionParser(default[T]))
     def apply[T <: AnyRef](selectors:KeySelector[String, _]*)(implicit registry:Registry, t:TypeTag[T]) =
       ParserWrapper(OptionParser(ClassParser[T](selectors.toList, registry)))
+    def apply[T <: AnyRef](selectorsList:Seq[KeySelectorExt[_]], selectors:KeySelectorExt[_]*)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(OptionParser(ClassParser[T](selectorsList.toList ++ selectors.toList, registry)))
+    def apply[T <: AnyRef](selectorsList1:Seq[KeySelectorExt[_]], selectorsList2:Seq[KeySelectorExt[_]], selectors:KeySelectorExt[_]*)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(OptionParser(ClassParser[T](selectorsList1.toList ++ selectorsList2.toList ++ selectors.toList, registry)))
+    def apply[T <: AnyRef](selectorsList1:Seq[KeySelectorExt[_]], selectorsList2:Seq[KeySelectorExt[_]], selectorsList3:Seq[KeySelectorExt[_]], selectors:KeySelectorExt[_]*)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(OptionParser(ClassParser[T](selectorsList1.toList ++ selectorsList2.toList ++ selectorsList3.toList ++ selectors.toList, registry)))
+
+
     def apply[T](parser:Parser[T]) =
       ParserWrapper(OptionParser(parser))
   }
@@ -190,6 +206,12 @@ object Dsl {
       ParserWrapper(OrElseParser(default[T], orElse))
     def apply[T <: AnyRef](selectors:KeySelector[String, _]*)(orElse:T)(implicit registry:Registry, typeTag:TypeTag[T]) =
       ParserWrapper(OrElseParser(ClassParser[T](selectors.toList, registry), orElse))
+    def apply[T <: AnyRef](selectorsList:Seq[KeySelectorExt[_]], selectors:KeySelectorExt[_]*)(orElse:T)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(OrElseParser(ClassParser[T](selectorsList.toList ++ selectors.toList, registry), orElse))
+    def apply[T <: AnyRef](selectorsList1:Seq[KeySelectorExt[_]], selectorsList2:Seq[KeySelectorExt[_]], selectors:KeySelectorExt[_]*)(orElse:T)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(OrElseParser(ClassParser[T](selectorsList1.toList ++ selectorsList2.toList ++ selectors.toList, registry), orElse))
+    def apply[T <: AnyRef](selectorsList1:Seq[KeySelectorExt[_]], selectorsList2:Seq[KeySelectorExt[_]], selectorsList3:Seq[KeySelectorExt[_]], selectors:KeySelectorExt[_]*)(orElse:T)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(OrElseParser(ClassParser[T](selectorsList1.toList ++ selectorsList2.toList ++ selectorsList3.toList ++ selectors.toList, registry), orElse))
     def apply[T](parser:Parser[T], orElse:T) =
       ParserWrapper(OrElseParser(parser, orElse))
   }
