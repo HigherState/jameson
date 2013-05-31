@@ -37,7 +37,7 @@ object Dsl {
   case object empty extends IsValidator
   case object excludekeys extends IsValidator
 
-  trait AddValidator[U, T] {
+  trait AddValidator[U, +T] {
     def parser:Parser[U]
     def maxlength(length:Int) = add(MaxLength(length))
     def minlength(length:Int) = add(MinLength(length))
@@ -97,18 +97,10 @@ object Dsl {
   case class ParserWrapper[T](parser:Parser[T]) extends Parser[T] with AddValidator[T, ParserWrapper[T]] {
 
     protected def newParser(parser:Parser[T]) = ParserWrapper(parser)
+
     def map[U](func:T => U) = PipeParser(parser, func)
     def |>[U](func:T => U) = PipeParser(parser, func)
     def parse(tokenizer:Tokenizer, path:Path) = parser.parse(tokenizer, path)
-
-    def getClassName:String = getClassName(parser)
-
-    private def getClassName[T](parser:Parser[T]):String = parser match {
-      case c:ClassParser[_]     => c.getClassName
-      case p:PipeParser[_, _]   => getClassName(p.parser)
-      case v:ValidatorParser[_] => getClassName(v.parser)
-      case _                    => throw new Exception("Only class parser can be matched with out a key value")
-    }
 
     override def default = parser.default
   }
@@ -237,10 +229,10 @@ object Dsl {
     def apply[T, U](key:String, default:T, selectors:Selector[T, U]*)(implicit registry:Registry, typeTag:TypeTag[T]) =
       MatchParser(key, registry[T], Some(default), selectors.flatMap(p => p.keys.map(_ -> p.parser)).toMap)
 
-    def apply[T](key:String, classes:ParserWrapper[T]*)(implicit registry:Registry) =
-      MatchParser(key, registry[String], None, classes.map(p => (p.getClassName, p)).toMap)
-    def apply[T](key:String, default:String, classes:ParserWrapper[T]*)(implicit registry:Registry) =
-      MatchParser(key, registry[String], Some(default), classes.map(p => (p.getClassName, p)).toMap)
+    def apply[T <: Any](key:String, classes:Parser[T]*)(implicit registry:Registry) =
+      MatchParser(key, registry[String], None, classes.map(p => (getClassName(p), p)).toMap)
+    def apply[T <: Any](key:String, default:String, classes:Parser[T]*)(implicit registry:Registry) =
+      MatchParser(key, registry[String], Some(default), classes.map(p => (getClassName(p), p)).toMap)
 
     def apply[T](matches:Selector[String, T]*) =
       KeyMatcher(matches.flatMap(s => s.keys.map((_, s.parser))))
@@ -256,4 +248,13 @@ object Dsl {
   }
 
   private def default[T](implicit registry:Registry, t:TypeTag[T]) = registry.get[T].getOrElse(ClassParser[T](Nil, registry))
+
+
+  private def getClassName[T](parser:Parser[T]):String = parser match {
+    case c:ClassParser[_]     => c.getClassName
+    case p:ParserWrapper[_]   => getClassName(p.parser)
+    case p:PipeParser[_, _]   => getClassName(p.parser)
+    case v:ValidatorParser[_] => getClassName(v.parser)
+    case _                    => throw new Exception("Only class parser can be matched with out a key value")
+  }
 }

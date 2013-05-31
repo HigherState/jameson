@@ -43,10 +43,16 @@ class DslClassSpec extends WordSpec with MustMatchers  {
       matchAs("type", "int" -> as[Child1]("value" -> "tInt" -> as[Int]), "bool" -> as[Child2]("value" -> "tBool" -> as[Boolean])).parse("""{"type":"bool","value":false}""") mustEqual (Success(Child2(false)))
     }
 
-//    "Handle matching on the class name" in {
-//      matchAs("class", as[Child1]("value" -> "tInt" -> as[Int]), as[Child2]("value" -> "tBool" -> as[Boolean]), as[Child3]("value1" -> "tBool" -> as[Boolean], "value2" -> "tInt" -> as[Int]))
-//      .parse("""{"class":"Child3", "value1":true,"value2":4}""") mustEqual(Success(Child3(4, true)))
-//    }
+    "Handle matching on the class name" in {
+      matchAs("class", as[Child1]("value" -> "tInt" -> as[Int]), as[Child2]("value" -> "tBool" -> as[Boolean]), as[Child3]("value1" -> "tBool" -> as[Boolean], "value2" -> "tInt" -> as[Int]))
+      .parse("""{"class":"Child3", "value1":true,"value2":4}""") mustEqual(Success(Child3(4, true)))
+    }
+
+    "Handle matching on the class name with map" in {
+      matchAs("class", as[Child1]("value" -> "tInt" -> as[Int]) map (_.toString), as[Child2]("value" -> "tBool" -> as[Boolean]) map (_.toString), as[Child3]("value1" -> "tBool" -> as[Boolean], "value2" -> "tInt" -> as[Int]) map (_.toString))
+        .parse("""{"class":"Child3", "value1":true,"value2":4}""") mustEqual(Success("Child3(4,true)"))
+    }
+
 
     "Handle matching with a partial function" in {
       matchAs[String, Collections]("type"){
