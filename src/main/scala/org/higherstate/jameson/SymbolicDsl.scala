@@ -22,10 +22,12 @@ object SymbolicDsl {
 
   case class SelectorInstance[U,T](keys:Set[U], parser:Parser[T]) extends Selector[U,T] {
     def |>[V](func:T => V) = SelectorInstance(keys, PipeParser(parser, func))
+    def isGroup = false
   }
   case class KeySelectorInstance[U,T](keys:Set[U], parser:Parser[T], replaceKey:Option[U], isRequired:Boolean) extends KeySelector[U, T] {
     def |>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
     def |>>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, true)
+    def isGroup = false
   }
 
   //case class SelectorInstance[U,T](keys:Set[U], parser:Parser[T])
@@ -52,12 +54,14 @@ object SymbolicDsl {
     def keys = self._1.keys
     def parser = self._2
     def |>[V](func:T => V) = SelectorInstance(keys, PipeParser(parser, func))
+    def isGroup = false
   }
 
   implicit class UnrequiredMultiKeySelectorWithReplaceKey[T](val self:((OrKeys, String),Parser[T])) extends AnyVal with KeySelector[String, T] {
     def keys = self._1._1.keys.map(_.toString)
     def parser = self._2
     def isRequired = false
+    def isGroup = false
     def replaceKey = Some(self._1._2)
     def |>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
     def |>>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, true)
@@ -67,6 +71,7 @@ object SymbolicDsl {
     def keys = Set(self._1._1)
     def parser = self._2
     def isRequired = false
+    def isGroup = false
     def replaceKey = Some(self._1._2)
     def |>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
     def |>>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, true)
@@ -76,6 +81,7 @@ object SymbolicDsl {
     def keys = Set(self._1)
     def parser = self._2
     def isRequired = false
+    def isGroup = false
     def replaceKey = None
     def |>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, isRequired)
     def |>>[V](func:T => V) = KeySelectorInstance(keys, PipeParser(parser, func), replaceKey, true)

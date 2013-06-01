@@ -10,7 +10,6 @@ object DefaultRegistry {
   implicit val registry:Registry = new DefaultRegistryValues {}
   implicit val dateTimeFormatter:Option[DateTimeFormatter] = None
   implicit val dateTimeZone:DateTimeZone = DateTimeZone.UTC
-
 }
 
 trait DefaultRegistryValues extends Registry {

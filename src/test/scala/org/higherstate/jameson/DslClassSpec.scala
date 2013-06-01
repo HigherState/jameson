@@ -76,6 +76,24 @@ class DslClassSpec extends WordSpec with MustMatchers  {
     val pet:Try[Object] = classParser("""{"animalType":"dog","name":"rufus","age":3}""")
     pet mustEqual Success(Canine("dog", "rufus", 3))
   }
+
+  "parse with extracting key groups" should {
+    "Handle extracting 2 keys" in {
+      val p = as[PartialNestedChild](("tInt"&"tBool") -> "child3" -> as[Child3])
+      p.parse("""{"tInt":3,"tBool":false,"tFloat":3.4,"tString":"test"}""") mustEqual (Success(PartialNestedChild(3.4F, Child3(3,false), "test")))
+    }
+    "Handle double extracting 2 keys" in {
+      val p = as[DoubleNestedChild](
+        ("tInt"&"tBool") -> "child3" -> as[Child3],
+        "tString" -> as [String] map (_ + "2"),
+        ("tInt2"&"tBool2") -> "child32" -> as[Child3](
+          "tInt2" -> "tInt" -> as [Int],
+          "tBool2" -> "tBool" -> as [Boolean]
+        )
+      )
+      p.parse("""{"tInt":3,"tInt2":6, "tBool":false, "tBool2":true, "tFloat":3.4,"tString":"test"}""") mustEqual (Success(DoubleNestedChild(3.4F, Child3(3,false), Child3(6, true), "test2")))
+    }
+  }
 }
 
 
