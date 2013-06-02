@@ -54,9 +54,9 @@ import org.higherstate.jameson.DefaultRegistry._
 
 you can then define your own parser validation
 
-##Key validator pairs
+####Key validator pairs
 
-####Jameson supports parser validators against key value pairs these are used for mapping json objects onto class parser parameters,
+Jameson supports parser validators against key value pairs these are used for mapping json objects onto class parser parameters,
 tuple parameters or Maps.  These are of the form:  
   
 
@@ -105,6 +105,75 @@ val longParser = as [Long]
 val floatParser = as [Float]
 val jodaDateTimeParser = as [DateTime]
 val uuidParser = as [UUID]
+```
+
+####Parsing case classes
+```scala
+
+//parser will auto identify constructor arguments and map with json object keys
+case class SimpleClass(string:String, int:Int)
+val simpleParser = as [SimpleClass]
+simpleParser("""{
+  "string":"text",
+  "int":0
+  }""")
+
+
+//can specify validation on an argument
+val validationParser = as [SimpleClass]("int" -> as [Int] > 0)
+validationParser("""{
+  "string":"text",
+  "int":10
+  }""")
+
+
+//can remap key if argument name doesn't match
+val remapParser = as [SimpleClass]("text" -> "string")
+remapParser("""{
+  "text":"text",
+  "int":10
+  }""")
+  
+//can select on different possible keys
+val possibleParser = as [SimpleClass] (("int"|"number") -> "int")
+possibleParser("""{
+  "string":"text",
+  "number":10
+  }""")
+
+//parser will automatically result nested case classes
+case class NestedClass(simple:SimpleClass, bool:Boolean)
+val nestedParser = as [NestedClass]
+nestedParser("""{
+  "simple": {
+    "string":"text",
+    "int":0
+    },
+  "bool":false
+  }""")
+
+
+val nestedValidationParser = as[NestedClass] (
+  "SimpleClass" -> as [SimpleClass]("int" -> as [Int] > 0)
+)
+nestedValidationParser("""{
+  "simple": {
+    "string":"text",
+    "int":10
+    },
+  "bool":false
+  }""")
+
+//can group keys to create nested classes
+val groupParser = as [NestedClass] (
+  ("string"&"int") -> "simple" -> as [SimpleClass]
+)
+groupParser("""{
+  "string":"text",
+  "int":10,
+  "bool":false
+  }""")
+  
 ```
  
 ####Parsing tuples and mapping into functions with more than one argument
