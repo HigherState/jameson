@@ -173,7 +173,15 @@ groupParser("""{
   "int":10,
   "bool":false
   }""")
-  
+```
+
+####Option Defaults and Either parsing
+
+```
+//parsing a case class with Option parameter, can resolve type erasure
+case class OptionClass(float:Float,int:Option[Int])
+val optioParser
+
 ```
  
 ####Parsing tuples and mapping into functions with more than one argument
