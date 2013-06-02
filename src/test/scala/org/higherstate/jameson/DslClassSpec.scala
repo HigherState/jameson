@@ -11,10 +11,6 @@ class DslClassSpec extends WordSpec with MustMatchers  {
   "Simple class parsing" should {
     "parse simple class with value" in {
       >>[Child1].parse("""{"tInt":3}""") mustEqual (Success(Child1(3)))
-
-
-
-
       >>[Child3]("tInt" -> ?(AsInt, 5)).parse("""{"tBool":false}""") mustEqual (Success(Child3(5, false)))
       >>[Child1](("a"|"b") -> "tInt" -> AsInt).parse("""{"b":3}""") mustEqual (Success(Child1(3)))
     }
