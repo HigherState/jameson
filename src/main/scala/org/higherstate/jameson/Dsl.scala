@@ -5,6 +5,7 @@ import org.higherstate.jameson.parsers._
 import reflect.runtime.universe._
 import org.higherstate.jameson.tokenizers.Tokenizer
 import scala.reflect.ClassTag
+import scala.util.matching.Regex
 
 object Dsl {
 
@@ -52,6 +53,7 @@ object Dsl {
     def maxlength(length:Int) = add(MaxLength(length))
     def minlength(length:Int) = add(MinLength(length))
     def regex(regex:String) = add(RegEx(regex.r))
+    def regex(regex:Regex) = add(RegEx(regex))
     def >=(compare:Number) = add(GreaterThanEquals(compare))
     def >(compare:Number) = add(GreaterThan(compare))
     def <=(compare:Number) = add(LessThanEquals(compare))

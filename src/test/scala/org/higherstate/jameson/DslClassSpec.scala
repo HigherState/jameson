@@ -40,6 +40,7 @@ class DslClassSpec extends WordSpec with MustMatchers  {
     }
     "handle just key remapping" in {
       as[Child3]("int" -> "tInt").parse("""{"int":256, "tBool":false}""") mustEqual (Success(Child3(256, false)))
+      as[Child3](("int"|"INT"|"tInt") -> "tInt").parse("""{"int":256, "tBool":false}""") mustEqual (Success(Child3(256, false)))
     }
   }
 
