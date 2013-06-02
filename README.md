@@ -177,7 +177,10 @@ groupParser("""{
 
 ####Option and defaults
 
-```
+For parsing as an option, both getAs, or asOption maybe used.  
+To flatten the option with a default value, use getAsOrDefault.
+
+```scala
 //parsing an optional value
 val optionParser = getAs[Int]
 optionParser("3")
@@ -190,7 +193,23 @@ res2:Try[Option[Int]] = Success(None)
 //parsing a case class with Option parameter, can resolve type erasure
 case class OptionClass(float:Float,int:Option[Int])
 val optionClassParser = as [OptionClass] ("int" -> getAs [Int])
+optionParser("""{"float":3.5,"int":7}""")
+res0:Try[OptionClass] = Success(OptionClass(3.5, Some(7)))
+optionParser("""{"float":3.5,"int":null}""")
+res0:Try[OptionClass] = Success(OptionClass(3.5, None))
+optionParser("""{"float":3.5}""")
+res0:Try[OptionClass] = Success(OptionClass(3.5, None))
 
+//parsing with a default value
+val defaultParser = getAsOrElse[String]("not found")
+defaultParser("\"result\"")
+res0:Try[String] = Success("result")
+optionParser("null")
+res1:Try[String] = Success("not found")
+optionParser("")
+res2:Try[String] = Success("not found")
+
+val defaultClassParser = getAsOrElse [SimpleClass](SimpleClass("empty", 0))
 
 ```
  
@@ -217,132 +236,10 @@ val tupleMapParserOrKeys = asTuple(
 val differenceParser = asTuple[Int,Int] map (_ - _)
 ```
 
+####Parsing either
 
-## Dsl parser/validators
+####Matching parsers
 
-#### Open map parser  \#*  
-This will parse a json object and will map any key:value pair, whether it has been 
-explicit validated against or not.  Parsing will return a Try[Map[String,Any]] object
-
-```scala
-val parser = #*() //This will simply map all object content to a Map[String,Any]
-val parser = #*("a" -> AsInt) //This will validate that the key 'a' maps to an Integer
-val parser = #*("a" -> AsString, "b" -> AsDouble) //This will validate that the key 'a' maps to a String and the key 'b' maps to a double 
-val parser = #*("a" ->> AsBool) //This will validate that the key 'a' maps to a Boolean and that 'a' is required
-val parser = #*("a" -> #*("b" -> AsFloat) //This will validate that the key 'a' maps to a map which if it has the key 'b' will map to a float 
-```
-
-####Closed map parser \#!
-This will parse a json object and will map only those key:value pairs which have been explicitly validated.
-If any other key value pairs are found, validation will fail.  Parsing will return a Try[Map[String,Any]] object
-
-```scala
-val parser = #!("a" -> AsInt) //This will validate that the key 'a' maps to an Integer and there are no other keys, a is not required
-val parser = #!("a" ->> AsBool) //This will validate that the key 'a' maps to a Boolean, there are no other keys and that 'a' is required
-```
-
-####Drop map parser \#^
-This will parse a json object and will map only those key:value pairs which have been explicitly validated.
-If any other key value pairs are found, they will be ignored.  Parsing will return a Try[Map[String,Any]] object
-
-```scala
-val parser = #^("a" -> AsInt) //This will validate that the key 'a' maps to an Integer, a is not required
-```
-
-####List parser ||
-This will parse a json array to a Try[List[?]].  The type of the return List will match the type of any parser argument, 
-or will be Any if no parser argument is provided
-
-```scala
-val parser = ||() //This will validate that the  json is a list
-val parser = ||(AsString) //This will validate the json is a list of strings 
-val parser = ||(#*) //This will validate the json is a list of (open) Maps
-```
-
-####TraversableOnce parser ¦¦
-This will parse a json array to a TraversableOnce[Try[?]].  The type of the return TraversableOnce Try values will match the type of any parser argument, 
-or will be Any if no parser argument is provided.  If there is a Failure value in the TraversableOnce, there will be no
-more elements.  The TraversableOnce parser should be a top level parser only.
-
-```scala
-val parser = ¦¦() //This will validate that the  json is a list
-val parser = ¦¦(AsString) //This will validate the json is a list of strings 
-val parser = ¦¦(||) //This will validate the json is a list of List[Any]
-```
+####Trying parsers
 
 
-####Case class parser \>>
-This will parse an json object into a specified case class using the default constructor.  Keys can be validated against to
-resolve any type erasure, and keys renamed to match the correct parameter name.  Parser will also resolve mapping for any
-unspecified case classes in the constructor parameters.  Parser will try and match the correct parser to the constructor parameter if not specified.
-
-```scala
-val parser >>[MyClass] // this will parse json object to MyClass
-val parser >>[MyClass]("key" -> "count" -> AsInt) // this will map from key 'key' to parameter name 'count' as an Int
-val parser >>[MyClass]("default" -> ?("defaultValue")) //this will use the value "defaultValue" for the argument "default" if value not found
-val parser >>[MyClass]("list" -> ||(AsFloat)) //this will resolve the argument list as a list of floats.
-```
-
-####Option and OrElse parser ?
-This will parse to a Some(value) if the value is not null, otherwise it will parse to None.  If a default value is specified
-then this will either return a the value or the default value if null was found.  
-*When used in a Map parser, if the key is not found and the validator is required (->>) then it will substitute a None, or default value.*
-*When used in a Class parser, if the key is not found, then it will substitute a None, or default value*
-
-```scala
-val parser = ? // no validation
-val parser = ?("empty") // no validation, if null, replaces with "empty"
-val parser = ?(AsInt) // validate is null or Int
-val parser = ?(AsDouble, 1.5) // validates is null or double
-```
-
-####Try parser ??
-This will attempt to parse json into a series of ordered parsers.  The first to succeed returns the successfully parsed result.
-If none succeed, a failure is returned.
-*Currently having only two parsers is supported
-
-```scala
-val parser = ??(>>[MyClass1], >>[MyClass2]) // validates a MyClass1 object if possible, otherwise a MyClass2
-```
-
-####Either parser ><
-This will parse to either the left provided parser or the right provided parser, returning a Left(value) or Right(value) object.
-The parser will try the left parser first, and if it fails, will try the right parser.  This causes localized buffering of
-the tokens.
-
-```scala
-val parser = ><(AsInt, AsDouble) // validates as either an int or a double
-val parser = ><(#*("key" ->> AsInt), #*("key" -> AsString)) // validates as either a map with a required key int value, or a map which may have key string value
-val parser = ><(>>[MyClass1], >>[MyClass2]) // validates as either a mapping into MyClass1 or MyClass2
-```
-
-####Matching parser /
-This will parse a json object to a choice of possible parsers depending on a match with an extracted key,value pair. A partial function
-can also be applied to the match value.  Finding the matching key value pair causes localized buffering of the tokens.  A default value 
-can be provided if a key value pair is not found.
-
-```scala
-val parser = /("mapType","open" -> #*(), "closed" -> #*("key" -> AsString)) // selects parser based on "mapType" values "open" or "closed"
-val parser = /("type", "c1" -> >>[MyClass1], "c2" -> >>[MyClass2]) // selects parser based on "type" values "c1" or "c2"
-val parser = /("type", >>[MyClass1], >>[MyClass2]) // selects class parser based on "type" matching against the name of the class, "MyClass1" or "MyClass2"
-val parser = /("type", "MyClass1", >>[MyClass1], >>[MyClass2])// if "type" is not found will match MyClass1
-val parser = /[String,MySubClass]("type"){
-    case "MyClass1"|"Class1" => >>[MyClass1]
-    case _                   => >>[MyClass2]
-}
-
-```
-
-####Piping to a function parser |\>
-This will take the result of the previous parser and pipe it into a function with a corresponding argument.  If the previous parser is a tuple parser, you can pipe it 
-into a function with corresponding arguments.
-
-```scala
-val parser = AsInt |> (_ + 6) // Adds 6 to the result of the parser
-val parser = T(AsInt, AsDouble) |> (_ * _) //multiples both values in parsed array together
-val parser = T("a1" -> AsInt, "a2" -> AsBool, "a3" -> ?(AsString)) |> f(Int, Bool, Option[String]) //pipe parsed object values into a function
-```
-
-[HigherState]: http://higher-state.blogspot.com
-[Jackson]: http://jackson.codehaus.org/
-[Scala]: http://www.scala-lang.org/
