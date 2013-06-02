@@ -243,3 +243,6 @@ val differenceParser = asTuple[Int,Int] map (_ - _)
 ####Trying parsers
 
 
+[HigherState]: http://higher-state.blogspot.com
+[Jackson]: http://jackson.codehaus.org/
+[Scala]: http://www.scala-lang.org/
