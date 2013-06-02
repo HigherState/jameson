@@ -12,15 +12,18 @@ case object ArrayEndToken extends Token
 case object StartToken extends Token
 case object EndToken extends Token
 
-case object NullToken extends ValueToken {
-  def value = null
-}
+case class KeyToken(value:String) extends AnyVal with Token
 
-case class KeyToken(value:String) extends AnyVal with ValueToken
+case class BadToken(value:Throwable) extends AnyVal with Token
+
 case class LongToken(value:Long) extends AnyVal with ValueToken
 case class DoubleToken(value:Double) extends AnyVal with ValueToken
 case class StringToken(value:String) extends AnyVal with ValueToken
 case class BooleanToken(value:Boolean) extends AnyVal with ValueToken
+case object NullToken extends ValueToken {
+  def value = null
+}
+
 case class AnyRefToken(value:AnyRef) extends ValueToken
 
-case class BadToken(value:Throwable) extends AnyVal with ValueToken
+

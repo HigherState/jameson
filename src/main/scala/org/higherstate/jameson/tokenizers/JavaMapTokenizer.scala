@@ -2,68 +2,78 @@ package org.higherstate.jameson.tokenizers
 
 import org.higherstate.jameson.exceptions.UnexpectedValueException
 import org.higherstate.jameson.NoPath
-import scala.collection.mutable.ListBuffer
+import org.higherstate.jameson.tokenizers.JavaTokenizer._
 
-object JavaMapTokenizer {
+object JavaTokenizer {
+  type jMap = java.util.Map[String, Any]
+  type jEntry = java.util.Map.Entry[String, Any]
+  type jList = java.lang.Iterable[Any]
+  type jIterator[T] = java.util.Iterator[T]
 
-  def apply(map:java.util.Map[String, Any]):Tokenizer = JavaMapTokenizerInstance(Left(map))
-  def apply(list:java.util.List[Any]):Tokenizer = JavaMapTokenizerInstance(Right(list))
+  def apply(map:jMap):Tokenizer = JavaObjectTokenizer(map.entrySet().iterator(), None)
+  def apply(list:jList):Tokenizer = JavaArrayTokenizer(list.iterator(), None)
 
+  def tokenizeValue(any:Any, continuation:Tokenizer):Either[Token, Tokenizer] = any match {
+    case i:Int        => Left(LongToken(i))
+    case l:Long       => Left(LongToken(l))
+    case s:String     => Left(StringToken(s))
+    case b:Boolean    => Left(BooleanToken(b))
+    case m:jMap       => Right(JavaObjectTokenizer(m.entrySet().iterator(), Some(continuation)))
+    case a:jList      => Right(JavaArrayTokenizer(a.iterator(), Some(continuation)))
+    case f:Float      => Left(DoubleToken(f))
+    case d:Double     => Left(DoubleToken(d))
+    case null         => Left(NullToken)
+    case c:Char       => Left(StringToken(c.toString))
+    case b:Byte       => Left(LongToken(b))
+    case s:Short      => Left(LongToken(s))
+    case a:AnyRef     => Left(AnyRefToken(a))
+    case t            => Left(BadToken(UnexpectedValueException("Not a json value", t, NoPath)))
+  }
 }
 
-case class JavaMapTokenizerInstance(value:Either[java.util.Map[String, Any], java.util.List[Any]]) extends Tokenizer {
-  type jMap = java.util.Map[String, Any]
-  type jList = java.util.List[Any]
+case class JavaObjectTokenizer(values:jIterator[jEntry], continuation:Option[Tokenizer]) extends Tokenizer {
+  private var currentPair:Option[jEntry] = None
+  private var _head:Token = ObjectStartToken
+  private var isKey = true
 
-  var tokens = value match {
-    case Left(map) => tokenizeMap(map)
-    case Right(list) => tokenizeList(list)
-  }
-
-  private def tokenizeMap(map:jMap):List[Token] = {
-    val l = new ListBuffer[Token]
-    l += ObjectStartToken
-    val i = map.entrySet().iterator()
-    while (i.hasNext) {
-      val p = i.next()
-      l += KeyToken(p.getKey)
-      l ++= tokenizeValue(p.getValue)
-    }
-    l += ObjectEndToken
-    l.result()
-  }
-
-  private def tokenizeList(list:jList):List[Token] = {
-    val l = new ListBuffer[Token]
-    l += ArrayStartToken
-    val i = list.iterator()
-    while (i.hasNext) l ++= tokenizeValue(i.next())
-    l += ArrayEndToken
-    l.result
-  }
-
-  private def tokenizeValue(any:Any):List[Token] = any match {
-    case i:Int        => List(LongToken(i))
-    case l:Long       => List(LongToken(l))
-    case s:String     => List(StringToken(s))
-    case b:Boolean    => List(BooleanToken(b))
-    case m:jMap       => tokenizeMap(m)
-    case a:jList      => tokenizeList(a)
-    case f:Float      => List(DoubleToken(f))
-    case d:Double     => List(DoubleToken(d))
-    case null         => List(NullToken)
-    case c:Char       => List(StringToken(c.toString))
-    case b:Byte       => List(LongToken(b))
-    case s:Short      => List(LongToken(s))
-    case a:AnyRef     => List(AnyRefToken(a))
-    case t            => List(BadToken(UnexpectedValueException("Not a json value", t, NoPath)))
-  }
+  def head = _head
 
   def moveNext() = {
-    tokens = tokens.tail
-    this
+    if (head == ObjectEndToken) continuation.map(_.moveNext).getOrElse(EndTokenizer)
+    else if (isKey) {
+      if (!values.hasNext)_head = ObjectEndToken
+      else {
+        currentPair = Some(values.next())
+        _head = KeyToken(currentPair.get.getKey)
+        isKey = false
+      }
+      this
+    }
+    else {
+      isKey = true
+      tokenizeValue(currentPair.get.getValue, this).left.map{ value =>
+        _head = value
+        this
+      }.merge
+    }
   }
+}
 
-  def head = if (tokens.nonEmpty) tokens.head else EndToken
+case class JavaArrayTokenizer(values:jIterator[Any], continuation:Option[Tokenizer]) extends Tokenizer {
+  private var _head:Token = ArrayStartToken
+  def head = _head
 
+  def moveNext() = {
+    if (head == ArrayEndToken) continuation.map(_.moveNext).getOrElse(EndTokenizer)
+    else if (!values.hasNext) {
+      _head = ArrayEndToken
+      this
+    }
+    else {
+      tokenizeValue(values.next, this).left.map { value =>
+        _head = value
+        this
+      }.merge
+    }
+  }
 }

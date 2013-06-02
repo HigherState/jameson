@@ -10,7 +10,6 @@ object DefaultRegistry {
   implicit val registry:Registry = new DefaultRegistryValues {}
   implicit val dateTimeFormatter:Option[DateTimeFormatter] = None
   implicit val dateTimeZone:DateTimeZone = DateTimeZone.UTC
-
 }
 
 trait DefaultRegistryValues extends Registry {
@@ -27,6 +26,7 @@ trait DefaultRegistryValues extends Registry {
 
   def classParsers:Map[TypeSymbol, Parser[_]] = Map(
     ts[Any] -> AnyParser(this),
+    ts[AnyVal] -> AnyValParser(this),
     ts[Null] -> NullParser,
     ts[Boolean] -> BooleanParser,
     ts[Char] -> CharParser,

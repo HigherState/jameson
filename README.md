@@ -4,8 +4,9 @@
 
 Jameson builds on [Jackson][] to provide a DSL for [Scala][] which ties validation with 
 deserialization.  Jameson supports deserializing into native Scala Map and Lists as
-well as deserializing a stream into a TraversableOnce, it further supports Option and Either types.  
-Jameson will can deserialize into case classes and nested case classes. It is fully design to support 
+well as deserializing a stream into a TraversableOnce. Tuples, Option and Either types are also mapped, 
+as well as the ability to pipe values into a function.  
+Jameson can deserialize into case classes and nested case classes. It is fully designed to support 
 custom extension.
 
 Jameson parse returns a scala.util.Try object.  It will stop parsing on the first failure.
@@ -21,11 +22,14 @@ To use Jameson simply include a reference to the DSL to create your own parser v
 import org.higherState.jameson.Dsl._
     
 val mapParser = #*("Age" -> ?(AsInt), "Email" -> r("""\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}\b"""), "Name" -> "First Name" -> AsString)    
-val map:Success(Map[String:Any]) = mapParser("""{"Age":3,"Email":"test@jameson.com","Name":"John"}""")
+val map:Success[Map[String:Any]] = mapParser("""{"Age":3,"Email":"test@jameson.com","Name":"John"}""")
     
+val tupleParser = T(AsInt, AsString, AsString)
+val tuple:Success[(Int, String, String)] = tupleParser("""[123, "value1", "value2"]""")
+
 //case class Canine(age:Int, name:String) extends Pet
 val classParser = /("type", "dog" -> >>[Canine], "cat" -> >>[Feline])
-val pet:Success(Pet) = classParser("""{"type":"dog","name":"rufus","age":3}""")
+val pet:Success[Pet] = classParser("""{"type":"dog","name":"rufus","age":3}""")
 ```
 
 you can then define your own parser validation
@@ -41,7 +45,7 @@ you can then define your own parser validation
 ("key1"|"key2"|"key3") -> "newKey" -> parser/validator  -if there are different possible keys, must provide a new key  
 "key" |> (Any) => T - pipe value into a function with a single any parameter  
 "key" |>> (Any) => T - pipe value into a function with a single any parameter, the key is required  
-"key" -> parser/validator |> (T) => U - pipe value of parser/validator into a function with a single parameter of the same type as the parser output.  
+"key" -> parser/validator[T] |> (T) => U - pipe value of parser/validator into a function with a single parameter of the same type as the parser output.  
 
 ####The following validators are supported out of the box.  
   
@@ -54,14 +58,16 @@ AsFloat		-validates and parses to Float
 AsDouble	-validates and parses to Double  
 AsChar		-validates and parser to Char  
 AsString	-validates and parses to String  
-AsNull		-validates and parses to null 
-AsAnyRef    -validates and parses embedded objects
-AsDateTime  -validates and parsers to a joda.DateTime
+AsNull		-validates and parses to null  
+AsAnyRef    -validates and parses embedded objects  
+AsDateTime  -validates and parsers to a joda.DateTime  
 \#* \#! \#^	-these validate and parse to Map[String,Any]  
 ||			-validates and parses to a List  
 ¦¦			-validates and parses to a TraversableOnce  
+T           -validates and parses to a Tuple  
 \>>         -validates against a class   
 ?			-validates and parses to Some(value) or None if null is found  
+??			-validates and parses against the first success parser in the list  
 \><			-validates and parses to Either  
 /			-validates against a key value pair matched parser  
 |\>         -validates and parses into a function  
@@ -120,6 +126,16 @@ val parser = ¦¦(AsString) //This will validate the json is a list of strings
 val parser = ¦¦(||) //This will validate the json is a list of List[Any]
 ```
 
+####Tuple parser T
+This will parse a json array or object into a tuple of the type and length defined by the provided parser arguments. The tuple parser supports 
+parsers with default values to allow for cases where the length of the json list maybe shorter than the number of tuple arguments.
+
+```scala
+val parser = T(AsInt, AsBool) //This will validate a json list of 2 elements
+val parser = T(AsInt, ?(AsBool), ?(AsString)) //This will validate a json list of 1, 2, or 3 elements
+val parser = T("int" -> AsInt, "bool" -> AsBool) //This will validate an object with keys 'int' and 'bool'
+```
+
 ####Case class parser \>>
 This will parse an json object into a specified case class using the default constructor.  Keys can be validated against to
 resolve any type erasure, and keys renamed to match the correct parameter name.  Parser will also resolve mapping for any
@@ -145,6 +161,15 @@ val parser = ?(AsInt) // validate is null or Int
 val parser = ?(AsDouble, 1.5) // validates is null or double
 ```
 
+####Try parser ??
+This will attempt to parse json into a series of ordered parsers.  The first to succeed returns the successfully parsed result.
+If none succeed, a failure is returned.
+*Currently having only two parsers is supported
+
+```scala
+val parser = ??(>>[MyClass1], >>[MyClass2]) // validates a MyClass1 object if possible, otherwise a MyClass2
+```
+
 ####Either parser ><
 This will parse to either the left provided parser or the right provided parser, returning a Left(value) or Right(value) object.
 The parser will try the left parser first, and if it fails, will try the right parser.  This causes localized buffering of
@@ -157,14 +182,30 @@ val parser = ><(>>[MyClass1], >>[MyClass2]) // validates as either a mapping int
 ```
 
 ####Matching parser /
-This will parse a json object to a choice of possible parsers depending on a match with an extracted key,value pair. Finding the
-matching key value pair causes localized buffering of the tokens.  A default value can be provided if a key value pair is not found
+This will parse a json object to a choice of possible parsers depending on a match with an extracted key,value pair. A partial function
+can also be applied to the match value.  Finding the matching key value pair causes localized buffering of the tokens.  A default value 
+can be provided if a key value pair is not found.
 
 ```scala
 val parser = /("mapType","open" -> #*(), "closed" -> #*("key" -> AsString)) // selects parser based on "mapType" values "open" or "closed"
 val parser = /("type", "c1" -> >>[MyClass1], "c2" -> >>[MyClass2]) // selects parser based on "type" values "c1" or "c2"
 val parser = /("type", >>[MyClass1], >>[MyClass2]) // selects class parser based on "type" matching against the name of the class, "MyClass1" or "MyClass2"
 val parser = /("type", "MyClass1", >>[MyClass1], >>[MyClass2])// if "type" is not found will match MyClass1
+val parser = /[String,MySubClass]("type"){
+    case "MyClass1"|"Class1" => >>[MyClass1]
+    case _                   => >>[MyClass2]
+}
+
+```
+
+####Piping to a function parser |\>
+This will take the result of the previous parser and pipe it into a function with a corresponding argument.  If the previous parser is a tuple parser, you can pipe it 
+into a function with corresponding arguments.
+
+```scala
+val parser = AsInt |> (_ + 6) // Adds 6 to the result of the parser
+val parser = T(AsInt, AsDouble) |> (_ * _) //multiples both values in parsed array together
+val parser = T("a1" -> AsInt, "a2" -> AsBool, "a3" -> ?(AsString)) |> f(Int, Bool, Option[String]) //pipe parsed object values into a function
 ```
 
 [HigherState]: http://higher-state.blogspot.com

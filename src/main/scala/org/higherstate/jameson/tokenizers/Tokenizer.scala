@@ -6,7 +6,7 @@ import org.higherstate.jameson.NoPath
 trait Tokenizer {
   def head:Token
   def moveNext():Tokenizer
-  def toBufferingTokenizer() = BufferingTokenizer(this)
+  def getBuffer():Buffer = BaseBuffer(this)
 
   def dropNext():Tokenizer = this.moveNext.drop()
 
@@ -14,12 +14,18 @@ trait Tokenizer {
     case (token:BadToken) => this
     case ArrayStartToken  => {
       this.moveNext()
-      while(head != ArrayEndToken) drop()
+      while(head != ArrayEndToken) {
+        if (head.isInstanceOf[BadToken] || head == EndToken) return this;
+        drop()
+      }
       this.moveNext()
     }
     case ObjectStartToken => {
       this.moveNext()
-      while(head != ObjectEndToken) moveNext().drop()
+      while(head != ObjectEndToken) {
+        if (head.isInstanceOf[BadToken] || head == EndToken) return this;
+        moveNext().drop()
+      }
       this.moveNext()
     }
     case ArrayEndToken    => FailedTokenizer(BadToken(UnexpectedTokenException("Unexpected token", ArrayEndToken, NoPath)))
@@ -32,33 +38,7 @@ case class FailedTokenizer(head:BadToken) extends Tokenizer {
   def moveNext() = this
 }
 
-case class BufferingTokenizer(tokenizer:Tokenizer) extends Tokenizer {
-  private var buffer = List(tokenizer.head)
-  private var subBufferingTokenizer:Option[BufferingTokenizer] = None
-  def head = buffer.head
-  def moveNext() = {
-    buffer = tokenizer.moveNext.head :: buffer
-    this
-  }
-  override def toBufferingTokenizer() =
-    if (subBufferingTokenizer.nonEmpty) throw new Exception("Cannot buffer twice on the same buffered tokenizer")
-    else {
-      subBufferingTokenizer = Some(BufferingTokenizer(this))
-      subBufferingTokenizer.get
-    }
-
-  def toBufferedTokenizer():BufferedTokenizer = subBufferingTokenizer match {
-    case None     => BufferedTokenizer(buffer.reverse, tokenizer.moveNext)
-    //TODO must be a faster way here
-    case Some(bt) => BufferedTokenizer(buffer.reverse ++ bt.toBufferedTokenizer().buffer, tokenizer)
-  }
-}
-
-case class BufferedTokenizer(var buffer:List[Token], tokenizer:Tokenizer) extends Tokenizer {
-  def head = buffer.head
-  def moveNext() = {
-    buffer = buffer.tail
-    if (buffer.isEmpty) tokenizer
-    else this
-  }
+object EndTokenizer extends Tokenizer {
+  def head = EndToken
+  def moveNext() = this
 }
