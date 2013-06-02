@@ -20,58 +20,192 @@ To use Jameson simply include a reference to the DSL to create your own parser v
 
 ```scala
 import org.higherState.jameson.Dsl._
+import org.higherstate.jameson.DefaultRegistry._
     
-val mapParser = #*("Age" -> ?(AsInt), "Email" -> r("""\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}\b"""), "Name" -> "First Name" -> AsString)    
-val map:Success[Map[String:Any]] = mapParser("""{"Age":3,"Email":"test@jameson.com","Name":"John"}""")
-    
-val tupleParser = T(AsInt, AsString, AsString)
-val tuple:Success[(Int, String, String)] = tupleParser("""[123, "value1", "value2"]""")
+  case class Rectangle(height:Float, width:Float, location:(Float, Float), color:Color, fillColor:Option[Color])
+  case class Circle(radius:Float, location:(Float, Float))
+  def toColorFunc(color:Int) = new Color(color)
+  
+  val json = """
+    {
+        "shape":"Rectangle",
+        "x":12.35,
+        "y":45.6,
+        "h":100,
+        "w":150,
+        "color":14321232,
+        "fillColor":null
+    }
+             """
 
-//case class Canine(age:Int, name:String) extends Pet
-val classParser = /("type", "dog" -> >>[Canine], "cat" -> >>[Feline])
-val pet:Success[Pet] = classParser("""{"type":"dog","name":"rufus","age":3}""")
+  val parser =
+    matchAs("shape",
+      as [Rectangle](
+        "h" -> "height",
+        "w" -> "width",
+        "color" -> as [Int] map toColorFunc,
+        "fillColor" -> getAs(as[Int] map toColorFunc),
+          ("x"&"y") -> "location" -> asTuple("x" -> as [Float], "y" -> as [Float])),
+      as [Circle] (
+        ("x"&"y") -> "location" -> asTuple("x" -> as [Float], "y" -> as [Float])
+      )
+    )      
 ```
 
 you can then define your own parser validation
 
-##Key validator pairs
+####Key validator pairs
 
-####Jameson supports parser validators against key value pairs, these are of the form  
-
-"key" -> parser/validator  			-if the key is not required  
-"key" ->> parser/validator 			-if the key is required  
-"key" -> "newKey" -> parser/validator	-if the key is not required and maps with a new key  
-"key" -> "newKey" ->> parser/validator	-if the key is required and maps with a new key  
-("key1"|"key2"|"key3") -> "newKey" -> parser/validator  -if there are different possible keys, must provide a new key  
-"key" |> (Any) => T - pipe value into a function with a single any parameter  
-"key" |>> (Any) => T - pipe value into a function with a single any parameter, the key is required  
-"key" -> parser/validator[T] |> (T) => U - pipe value of parser/validator into a function with a single parameter of the same type as the parser output.  
-
-####The following validators are supported out of the box.  
+Jameson supports parser validators against key value pairs these are used for mapping json objects onto class parser parameters,
+tuple parameters or Maps.  These are of the form:  
   
-AsBool      -validates and parses to Boolean  
-AsByte      -validates and parses to Byte  
-AsShort     -validates and parses to Short  
-AsInt		-validates and parses to Integer  
-AsLong		-validates and parses to Long  
-AsFloat		-validates and parses to Float  
-AsDouble	-validates and parses to Double  
-AsChar		-validates and parser to Char  
-AsString	-validates and parses to String  
-AsNull		-validates and parses to null  
-AsAnyRef    -validates and parses embedded objects  
-AsDateTime  -validates and parsers to a joda.DateTime  
-\#* \#! \#^	-these validate and parse to Map[String,Any]  
-||			-validates and parses to a List  
-¦¦			-validates and parses to a TraversableOnce  
-T           -validates and parses to a Tuple  
-\>>         -validates against a class   
-?			-validates and parses to Some(value) or None if null is found  
-??			-validates and parses against the first success parser in the list  
-\><			-validates and parses to Either  
-/			-validates against a key value pair matched parser  
-|\>         -validates and parses into a function  
-r           -validates against a regex  
+
+```scala
+// Basic key to parser map 
+val selector = "key" -> parser  
+
+//If we need to map to a new key, or class parameter  
+val remapSelector = "key" -> "newKey" -> parser  
+
+//If we have different possible keys to map to a new key or class parameter  
+val orKeysselector = ("key1"|"key2"|"key3") -> "newKey" -> parser  
+
+//If we we want to pipe parser results through a function  
+val mapSelector = "key" -> parser map func 
+val altMapSelector = "key" -> parser |> func  
+
+//If we want to group keys and parse them to another object parser 
+val groupKeysSelector = ("key1"&"key2") -> "newKey" -> parser 
+```
+
+####Parsing primitives, strings and dates
+
+```scala
+
+//Boolean parser
+val boolParser = as [Boolean]
+
+//Numeric parsers with validation
+val doubleLessThanParser = as [Double] < 25
+val intRangeParser  = as [Int] > 25 <= 35
+
+//regex parsing
+val regexParser = as [String] regex "<TAG\b[^>]*>(.*?)</TAG>"
+
+//email parsing
+val emailParser = as [String] is email
+
+//string length
+val stringLengthParser = as [String] maxlength 3 minlength 12
+
+//Other supported parsers
+val charParser = as [Char]
+val byteParser = as [Byte]
+val longParser = as [Long]
+val floatParser = as [Float]
+val jodaDateTimeParser = as [DateTime]
+val uuidParser = as [UUID]
+```
+
+####Parsing case classes
+```scala
+
+//parser will auto identify constructor arguments and map with json object keys
+case class SimpleClass(string:String, int:Int)
+val simpleParser = as [SimpleClass]
+simpleParser("""{
+  "string":"text",
+  "int":0
+  }""")
+
+
+//can specify validation on an argument
+val validationParser = as [SimpleClass]("int" -> as [Int] > 0)
+validationParser("""{
+  "string":"text",
+  "int":10
+  }""")
+
+
+//can remap key if argument name doesn't match
+val remapParser = as [SimpleClass]("text" -> "string")
+remapParser("""{
+  "text":"text",
+  "int":10
+  }""")
+  
+//can select on different possible keys
+val possibleParser = as [SimpleClass] (("int"|"number") -> "int")
+possibleParser("""{
+  "string":"text",
+  "number":10
+  }""")
+
+//parser will automatically result nested case classes
+case class NestedClass(simple:SimpleClass, bool:Boolean)
+val nestedParser = as [NestedClass]
+nestedParser("""{
+  "simple": {
+    "string":"text",
+    "int":0
+    },
+  "bool":false
+  }""")
+
+
+val nestedValidationParser = as[NestedClass] (
+  "SimpleClass" -> as [SimpleClass]("int" -> as [Int] > 0)
+)
+nestedValidationParser("""{
+  "simple": {
+    "string":"text",
+    "int":10
+    },
+  "bool":false
+  }""")
+
+//can group keys to create nested classes
+val groupParser = as [NestedClass] (
+  ("string"&"int") -> "simple" -> as [SimpleClass]
+)
+groupParser("""{
+  "string":"text",
+  "int":10,
+  "bool":false
+  }""")
+```
+
+####Option Defaults and Either parsing
+
+```
+//parsing a case class with Option parameter, can resolve type erasure
+case class OptionClass(float:Float,int:Option[Int])
+val optioParser
+
+```
+ 
+####Parsing tuples and mapping into functions with more than one argument
+  
+```scala
+//parsing a json array to tuple
+val tupleListParser = asTuple[String, Double, Boolean]
+
+//parsing json array with specific parsers
+val tupleListDefinedParsers = asTuple(as [String], as [Double] > 0, as [Boolean])
+
+//parsing json object to tuple
+val tupleMapParser = asTuple("double" -> as [Double], "int" -> as [Int])
+
+//parsing json object to tuple with complex selectors
+val tupleMapParserOrKeys = asTuple(
+  ("double"|"Double") -> as [Double], 
+  "int" -> as [Int] map func,
+  ("x"&"y") -> as [Point]
+)
+
+//mapping tuple results into multi argument functions
+val differenceParser = asTuple[Int,Int] map (_ - _)
+```
 
 
 ## Dsl parser/validators
@@ -126,15 +260,6 @@ val parser = ¦¦(AsString) //This will validate the json is a list of strings
 val parser = ¦¦(||) //This will validate the json is a list of List[Any]
 ```
 
-####Tuple parser T
-This will parse a json array or object into a tuple of the type and length defined by the provided parser arguments. The tuple parser supports 
-parsers with default values to allow for cases where the length of the json list maybe shorter than the number of tuple arguments.
-
-```scala
-val parser = T(AsInt, AsBool) //This will validate a json list of 2 elements
-val parser = T(AsInt, ?(AsBool), ?(AsString)) //This will validate a json list of 1, 2, or 3 elements
-val parser = T("int" -> AsInt, "bool" -> AsBool) //This will validate an object with keys 'int' and 'bool'
-```
 
 ####Case class parser \>>
 This will parse an json object into a specified case class using the default constructor.  Keys can be validated against to
