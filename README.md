@@ -45,7 +45,7 @@ import org.higherstate.jameson.DefaultRegistry._
         "w" -> "width",
         "color" -> as [Int] map toColorFunc,
         "fillColor" -> getAs(as[Int] map toColorFunc),
-          ("x"&"y") -> "location" -> asTuple("x" -> as [Float], "y" -> as [Float])),
+        ("x"&"y") -> "location" -> asTuple("x" -> as [Float], "y" -> as [Float])),
       as [Circle] (
         ("x"&"y") -> "location" -> asTuple("x" -> as [Float], "y" -> as [Float])
       )
@@ -175,12 +175,22 @@ groupParser("""{
   }""")
 ```
 
-####Option Defaults and Either parsing
+####Option and defaults
 
 ```
+//parsing an optional value
+val optionParser = getAs[Int]
+optionParser("3")
+res0:Try[Option[Int]] = Success(Some(3))
+optionParser("null")
+res1:Try[Option[Int]] = Success(None)
+optionParser("")
+res2:Try[Option[Int]] = Success(None)
+
 //parsing a case class with Option parameter, can resolve type erasure
 case class OptionClass(float:Float,int:Option[Int])
-val optioParser
+val optionClassParser = as [OptionClass] ("int" -> getAs [Int])
+
 
 ```
  
