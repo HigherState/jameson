@@ -10,13 +10,14 @@ object Dsl {
 
   case class OrKeys(keys:Set[String]) {
     def |(key:String) = OrKeys(keys + key)
-    def ->(key:String)(implicit registry:Registry) = UnknownKeySelector(keys, Some(key), registry.defaultUnknownParser)
-    def ->[T](parser:Parser[T]) = ParserSelector(keys, parser, false)
+    def ->(key:String)(implicit registry:Registry) = UnspecifiedKeySelector(keys, Some(key), registry.defaultUnknownParser)
+    def ->[T](parser:Parser[T]) = ParserSelector(keys, parser, false, false)
   }
 
   case class AndKeys(keys:Set[String]) {
     def &(key:String) = AndKeys(keys + key)
     def ->(key:String) = AndKeysTo(keys, key)
+    def ->[T](parser:Parser[T]) = ParserSelector(keys, parser, false, true)
   }
   case class AndKeysTo(keys:Set[String], to:String) {
     def ->[T](parser:Parser[T]) = ParserKeySelector(keys, Some(to), parser, false, true)
@@ -25,7 +26,7 @@ object Dsl {
   implicit class ImplicitString(val self:String) extends AnyVal {
     def |(key:String) = OrKeys(Set(self,key))
     def &(key:String) = AndKeys(Set(self,key))
-    def ->(key:String)(implicit registry:Registry) = UnknownKeySelector(Set(self), Some(key), registry.defaultUnknownParser)
+    def ->(key:String)(implicit registry:Registry) = UnspecifiedKeySelector(Set(self), Some(key), registry.defaultUnknownParser)
     def ->[T](parser:Parser[T])(implicit registry:Registry) = ParserKeySelector(Set(self), None, parser, false, false)
     def ->[T](any:Any) = (self, any)
     def is(required:IsRequired)(implicit registry:Registry) = ParserKeySelector(Set(self), None, registry.defaultUnknownParser, true, false)
@@ -83,26 +84,28 @@ object Dsl {
     protected def asRequired:T
   }
 
-  case class UnknownKeySelector[T](keys:Set[String], replaceKey:Option[String], parser:Parser[T]) extends KeySelectorExt[T] with RequirableAddValidator[T, ParserKeySelector[T]] {
+  case class UnspecifiedKeySelector[T](keys:Set[String], replaceKey:Option[String], parser:Parser[T]) extends KeySelectorExt[T] with RequirableAddValidator[T, ParserKeySelector[T]] {
     def ->[T](parser:Parser[T])(implicit registry:Registry) = ParserKeySelector(keys, replaceKey, parser, isRequired, false)
     protected def newParser(parser:Parser[T]) = ParserKeySelector(keys, replaceKey, parser, isRequired, false)
     protected def asRequired = ParserKeySelector(keys, replaceKey, parser, true, false)
     def isRequired = false
     def isGroup = false
+    def isParserSpecified = false
   }
 
   case class ParserKeySelector[T](keys:Set[String], replaceKey:Option[String], parser:Parser[T], isRequired:Boolean, isGroup:Boolean) extends KeySelectorExt[T] with RequirableAddValidator[T, ParserKeySelector[T]] {
     protected def newParser(parser:Parser[T]) = ParserKeySelector(keys, replaceKey, parser, isRequired, isGroup)
     protected def asRequired = ParserKeySelector(keys, replaceKey, parser, true, isGroup)
+    def isParserSpecified = true
   }
 
-  case class ParserSelector[T](keys:Set[String], parser:Parser[T], isRequired:Boolean) extends Selector[String, T] with RequirableAddValidator[T, ParserSelector[T]] {
-    protected def newParser(parser:Parser[T]) = ParserSelector(keys, parser, isRequired)
-    protected def asRequired = ParserSelector(keys, parser, true)
+  case class ParserSelector[T](keys:Set[String], parser:Parser[T], isRequired:Boolean, isGroup:Boolean) extends Selector[String, T] with RequirableAddValidator[T, ParserSelector[T]] {
+    protected def newParser(parser:Parser[T]) = ParserSelector(keys, parser, isRequired, isGroup)
+    protected def asRequired = ParserSelector(keys, parser, true, isGroup)
 
-    def map[V](func:T => V) = ParserSelector(keys, PipeParser(parser, func), isRequired)
-    def |>[V](func:T => V) = ParserSelector(keys, PipeParser(parser, func), isRequired)
-    def isGroup = false
+    def map[V](func:T => V) = ParserSelector(keys, PipeParser(parser, func), isRequired, isGroup)
+    def |>[V](func:T => V) = ParserSelector(keys, PipeParser(parser, func), isRequired, isGroup)
+    def isParserSpecified = true
   }
 
   case class ParserWrapper[T](parser:Parser[T]) extends Parser[T] with AddValidator[T, ParserWrapper[T]] {
@@ -208,11 +211,7 @@ object Dsl {
     def apply[T](parser:Parser[T]) =
       ParserWrapper(OptionParser(parser))
   }
-
-  object getAs extends OptionMethods
-  object asOption extends OptionMethods
-
-  object getAsOrElse {
+  sealed trait getAsOrElseMethods {
     def apply[T <: Any](orElse:T)(implicit registry:Registry, t:TypeTag[T]) =
       ParserWrapper(OrElseParser(default[T], orElse))
     def apply[T <: AnyRef](selectors:KeySelector[String, _]*)(orElse:T)(implicit registry:Registry, typeTag:TypeTag[T]) =
@@ -226,6 +225,12 @@ object Dsl {
     def apply[T](parser:Parser[T], orElse:T) =
       ParserWrapper(OrElseParser(parser, orElse))
   }
+
+  object getAs extends OptionMethods
+  object asOption extends OptionMethods
+  object getAsOrElse extends getAsOrElseMethods
+
+  object ? extends OptionMethods with getAsOrElseMethods
 
   object asList {
     def apply[T <: Any](implicit registry:Registry, t:TypeTag[T]) = ParserWrapper(ListParser(default[T]))

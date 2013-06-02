@@ -262,6 +262,10 @@ class DslValuesSpec extends WordSpec with MustMatchers {
     "Succeed with a range of keys" in {
       asTuple(("int"|"INT") -> as[Int], "string" -> as[String]).parse("""{"string":"s","INT":1}""") mustEqual Success((1,"s"))
     }
+    "Succeed with a grouping of keys" in {
+      val p = asTuple("string" -> as[String], ("int"&"double") -> asTuple("int" -> as [Int], "double" -> as [Double]))
+      p.parse("""{"int":3, "string":"text", "double":3.55}""") mustEqual Success(("text", (3, 3.55)))
+    }
   }
 
   "try match parser" should {
@@ -295,6 +299,36 @@ class DslValuesSpec extends WordSpec with MustMatchers {
     }
     "handle key finding out of order" in {
       matchAs("tBool" -> as[Child2], "tInt" -> as[Child1]).parse("""{"tFloat":12.3,"tInt":123,"tBool":false}""") mustEqual Success(Child2(false))
+    }
+  }
+
+  "Option parsing" should {
+    "parse with selectors" in {
+      getAs[Map[String,Any]]("tInt" -> as [Int] > 3 <= 10, "tBool" -> as [Boolean]).parse("") mustEqual Success(None)
+
+    }
+    "parser with selectors and default value" in {
+      getAsOrElse[Map[String, Any]]("tInt" -> as [Int] > 3 <= 10, "tBool" -> as [Boolean])(Map.empty).parse("") mustEqual Success(Map.empty)
+    }
+  }
+
+  "length validation" should {
+    "handle strings" in {
+      (as [String] maxlength 4 minlength 2).parse("\"text\"") mustEqual Success("text")
+      (as [String] maxlength 4 minlength 2).parse("\"t\"").isFailure mustEqual(true)
+      (as [String] maxlength 4 minlength 2).parse("\"texts\"").isFailure mustEqual(true)
+    }
+    "handle lists" in {
+      (asList[Any] maxlength 4 minlength 2).parse("[1,2,3,4]") mustEqual Success(List(1,2,3,4))
+      (asList[Any] maxlength 4 minlength 2).parse("[2]").isFailure mustEqual(true)
+      (asList[Any] maxlength 4 minlength 2).parse("[1,2,3,4,5,6]").isFailure mustEqual(true)
+    }
+  }
+
+  "e-mail validation" should {
+    "handle correct email address" in {
+      (as [String] is email).parse("\"test@test.com\"") mustEqual Success("test@test.com")
+      (as [String] is email).parse("\"test\"").isFailure mustEqual (true)
     }
   }
 }

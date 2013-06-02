@@ -10,11 +10,8 @@ class DslClassSpec extends WordSpec with MustMatchers  {
 
   "Simple class parsing" should {
     "parse simple class with value" in {
-<<<<<<< HEAD
-      >>[Child1].parse("""{"tInt":3}""") mustEqual (Success(Child1(3)))
-      >>[Child3]("tInt" -> ?(AsInt, 5)).parse("""{"tBool":false}""") mustEqual (Success(Child3(5, false)))
-      >>[Child1](("a"|"b") -> "tInt" -> AsInt).parse("""{"b":3}""") mustEqual (Success(Child1(3)))
-=======
+      as[Child3]("tInt" -> ?(as [Int], 5)).parse("""{"tBool":false}""") mustEqual (Success(Child3(5, false)))
+      as[Child1](("a"|"b") -> "tInt" -> as [Int]).parse("""{"b":3}""") mustEqual (Success(Child1(3)))
       as[Child1].parse("""{"tInt":3}""") mustEqual (Success(Child1(3)))
     }
     "parse simple class with value and extra values" in {
@@ -41,6 +38,9 @@ class DslClassSpec extends WordSpec with MustMatchers  {
     "ignore any unrequired key value pairs" in {
       as[Child3].parse("""{"tMap":{"key1":"value1","key2":[1,2,3,4]},"tBool":false,"tList":[1,2,[3,4,5],{"k":"v"},4,5], "tInt":3}""") mustEqual Success(Child3(3, false))
     }
+    "handle just key remapping" in {
+      as[Child3]("int" -> "tInt").parse("""{"int":256, "tBool":false}""") mustEqual (Success(Child3(256, false)))
+    }
   }
 
   "Conditional class parsing" should {
@@ -61,10 +61,9 @@ class DslClassSpec extends WordSpec with MustMatchers  {
 
     "Handle matching with a partial function" in {
       matchAs[String, Collections]("type"){
-        case "map" => as[MapChild]
+        case "map"  => as[MapChild]
         case "list" => as[ListChild]
       }.parse("""{"type":"list","list":[1,2,3,4]}""") mustEqual (Success(ListChild(List(1,2,3,4))))
->>>>>>> caa1a29333fd2d69f80000ac76745940739efd01
     }
   }
 
@@ -98,6 +97,19 @@ class DslClassSpec extends WordSpec with MustMatchers  {
         )
       )
       p.parse("""{"tInt":3,"tInt2":6, "tBool":false, "tBool2":true, "tFloat":3.4,"tString":"test"}""") mustEqual (Success(DoubleNestedChild(3.4F, Child3(3,false), Child3(6, true), "test2")))
+    }
+  }
+
+  "Parse with numeric validation" should {
+    "handle successes" in {
+      as[Child1]("tInt" -> as [Int] > 3 <= 1000).parse("""{"tInt":55}""") mustEqual (Success(Child1(55)))
+      as[ChildDouble]("tDouble" -> as [Double] > -30).parse("""{"tDouble":-25}""") mustEqual (Success(ChildDouble(-25.0)))
+      as[ChildByte]("tByte" -> as [Byte] <= 4).parser("""{"tByte":4}""") mustEqual (Success(ChildByte(4)))
+    }
+    "handle failures" in {
+      as[Child1]("tInt" -> as [Int] > 3 <= 1000).parse("""{"tInt":3}""").isFailure mustEqual (true)
+      as[Child1]("tInt" -> as [Int] > 3 <= 1000).parse("""{"tInt":1025}""").isFailure mustEqual (true)
+      as[ChildDouble]("tDouble" -> as [Double] > -30).parse("""{"tDouble":-35}""").isFailure mustEqual (true)
     }
   }
 }

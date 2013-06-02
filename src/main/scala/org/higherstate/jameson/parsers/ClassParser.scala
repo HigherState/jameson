@@ -27,12 +27,15 @@ case class ClassParser[+T:TypeTag](selectors:List[KeySelector[String,_]], regist
     constr.typeSignature match {
       case MethodType(params, _ ) => params.zipWithIndex.foreach{ case (p, i) =>
         val name = p.asTerm.name.toString
+        val typeSymbol = p.typeSignature.typeSymbol.asType
+
         selectors.find(_.toKey == name).map { s =>
           templateBuffer += NoArgFound(s.parser)
-          if (s.isGroup) groupBuffer += ((i, s.parser, s.keys))
-          else argsBuffer ++= s.keys.map(_ -> (s.parser, i))
+          val parser = if (s.isParserSpecified) s.parser else getUnspecifiedParser(typeSymbol)
+          if (s.isGroup) groupBuffer += ((i, parser, s.keys))
+          else argsBuffer ++= s.keys.map(_ -> (parser, i))
         }.getOrElse {
-          val parser = registry.get(p.typeSignature.typeSymbol.asType).getOrElse(EmbeddedClassParser(p.typeSignature.typeSymbol.asType, registry))
+          val parser = getUnspecifiedParser(typeSymbol)
           argsBuffer += name -> (parser, i)
           templateBuffer += NoArgFound(parser)
         }
@@ -41,6 +44,9 @@ case class ClassParser[+T:TypeTag](selectors:List[KeySelector[String,_]], regist
     }
     (argsBuffer.toMap, groupBuffer.result, templateBuffer.toArray)
   }
+
+  private def getUnspecifiedParser(typeSymbol:TypeSymbol) =
+    registry.get(typeSymbol).getOrElse(EmbeddedClassParser(typeSymbol, registry))
 }
 
 case class EmbeddedClassParser(typeSymbol:TypeSymbol, registry:Registry) extends ObjectArgumentsParser[Any] {

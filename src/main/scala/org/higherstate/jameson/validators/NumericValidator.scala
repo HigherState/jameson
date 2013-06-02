@@ -15,24 +15,24 @@ trait NumericValidator extends Validator {
 
 case class GreaterThan(compare:Number) extends NumericValidator {
   protected def validate(value:Number, path:Path) =
-    if (value.doubleValue <= value.doubleValue) Some(InvalidValueException(this, s"Expected number to be greater than $compare", value, path))
+    if (value.doubleValue <= compare.doubleValue) Some(InvalidValueException(this, s"Expected number to be greater than $compare", value, path))
     else None
 }
 
 case class LessThan(compare:Number) extends NumericValidator {
   protected def validate(value:Number, path:Path) =
-    if (value.doubleValue >= value.doubleValue) Some(InvalidValueException(this, s"Expected number to be less than $compare", value, path))
+    if (value.doubleValue >= compare.doubleValue) Some(InvalidValueException(this, s"Expected number to be less than $compare", value, path))
     else None
 }
 
 case class GreaterThanEquals(compare:Number) extends NumericValidator {
   protected def validate(value:Number, path:Path) =
-    if (value.doubleValue < value.doubleValue) Some(InvalidValueException(this, s"Expected number to be greater than or equal to $compare", value, path))
+    if (value.doubleValue < compare.doubleValue) Some(InvalidValueException(this, s"Expected number to be greater than or equal to $compare", value, path))
     else None
 }
 
 case class LessThanEquals(compare:Number) extends NumericValidator {
   protected def validate(value:Number, path:Path) =
-    if (value.doubleValue > value.doubleValue) Some(InvalidValueException(this, s"Expected number to be less than or equal to $compare", value, path))
+    if (value.doubleValue > compare.doubleValue) Some(InvalidValueException(this, s"Expected number to be less than or equal to $compare", value, path))
     else None
 }
