@@ -233,14 +233,58 @@ val tupleMapParserOrKeys = asTuple(
 )
 
 //mapping tuple results into multi argument functions
-val differenceParser = asTuple[Int,Int] map (_ - _)
+val additionParser = asTuple[Int,Int] map (_ + _)
+```
+
+####Parsing list
+
+Will parse a json array into a list object
+
+```scala
+//parse an array of strings
+val stringsParser = asList [String]
+stringsParser("""["one","two","three"]""")
+res0:List[String] = List("one","two","three")
+
+//parse with a specific parser
+val floatsParser = asList (as [Float] > 0)
+floatsParser("[1.4,1.1,2.76]")
+res1:List[Float] = List(1.4,1.1,2.76)
+```
+
+####Parsing stream
+
+Will parse a json array into a TraversableOnce collection object
+
+```scala
+//parse an array of objects
+val streamParser = asStream [SimpleClass]
+streamParser("""[{"string":"one","int":1},{"string":"two","int":2},{"string":"three","int":3}]""")
 ```
 
 ####Parsing either
 
-####Matching parsers
+Will try parsing left and if fails right.  If the right fails, this will be the exception passed backed.  The either parser
+causes buffering of tokens.
 
-####Trying parsers
+```scala
+//parsing an either
+val eitherParser = asEither[Int, String]
+
+//parsing an either with nested complex selectors
+val classParser = asEither (as [SimpleClass], as [Nested Class])
+
+```
+
+####Matching parser
+
+Will parse an json object matching on either a key value pair, or the existance of a key.  Partial functions can be used
+as well.  The matching parser causes buffering of tokens.
+
+####Try parser
+
+Will attempt to parse the json object in each successive parser until a successful parse occurs.  If all fails, the the failure
+from the last parser will be returned.  The try parser causes buffering of tokens.
 
 
 [HigherState]: http://higher-state.blogspot.com
