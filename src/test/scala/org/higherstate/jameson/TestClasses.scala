@@ -12,6 +12,7 @@ case class NestedChild(child1:Child1, child2:Child2) extends Parent
 case class MapChild(map:Map[String,Any]) extends Collections
 case class ListChild(list:List[Any]) extends Collections
 case class ListCharChild(list:List[Char]) extends Collections
+case class ListParents(int:Int, parents:List[Parent])
 
 case class ChildDouble(tDouble:Double)
 case class ChildByte(tByte:Byte)

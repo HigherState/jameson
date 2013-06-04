@@ -30,7 +30,7 @@ private case class BufferingTokenizer(baseBuffer:BaseBuffer, var bufferToken:Buf
     }
     this
   }
-  override def getBuffer() = ExtendedBuffer(baseBuffer, bufferToken)
+  override def getBuffer() = BaseBuffer(this)
 }
 
 private case class BufferToken(token:Token) {
