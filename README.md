@@ -178,7 +178,7 @@ groupParser("""{
 ####Option and defaults
 
 For parsing as an option, both getAs, or asOption maybe used.  
-To flatten the option with a default value, use getAsOrDefault.
+To flatten the option with a default value, use getAsOrElse.
 
 ```scala
 //parsing an optional value

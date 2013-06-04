@@ -14,10 +14,18 @@ class NestedStructuresSpec extends WordSpec with MustMatchers {
       val r = listParser(json)
       r.isSuccess mustEqual (true)
     }
+
+    val matchParser = matchAs("pType", "one" -> listParser, "two" -> listParser)
     "inside a match" in {
-      val parser = matchAs("pType", "one" -> listParser, "two" -> listParser)
       val json = """{"int":3,"parents":[{"type":"Child1", "tInt":3},{"tInt":3, "type":"Child1"}, {"tBool":false, "type":"Child2"}], "pType":"two"}"""
-      val r = parser(json)
+      val r = matchParser(json)
+      r.isSuccess mustEqual (true)
+    }
+
+    val doubleMatchParser = matchAs("dType", "one" -> matchParser, "two" -> matchParser)
+    "with a double match" in {
+      val json = """{"int":3,"dType":"one","parents":[{"type":"Child1", "tInt":3},{"tInt":3, "type":"Child1"},{"tBool":false, "type":"Child2"}], "pType":"two"}"""
+      val r = doubleMatchParser(json)
       r.isSuccess mustEqual (true)
     }
   }

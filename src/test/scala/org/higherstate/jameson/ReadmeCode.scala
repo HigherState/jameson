@@ -31,7 +31,7 @@ class ReadmeCode {
         "w" -> "width",
         "color" -> as [Int] map toColorFunc,
         "fillColor" -> getAs(as[Int] map toColorFunc),
-          ("x"&"y") -> "location" -> asTuple("x" -> as [Float], "y" -> as [Float])),
+        ("x"&"y") -> "location" -> asTuple("x" -> as [Float], "y" -> as [Float])),
       as [Circle] (
         ("x"&"y") -> "location" -> asTuple("x" -> as [Float], "y" -> as [Float])
       )
