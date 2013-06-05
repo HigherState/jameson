@@ -252,6 +252,28 @@ floatsParser("[1.4,1.1,2.76]")
 res1:List[Float] = List(1.4,1.1,2.76)
 ```
 
+####Path mapping
+
+You can select a path through nested json objects, parsing on the result of a single key.  If any part of the path is not found, a failure
+will be returned, unless the parser has a default value such as Option -> None, List -> Nil, Map -> Map.empty or a getAsOrElse default value.
+
+```scala
+//parse a value at the end of a path
+val pathParser = path / "key" -> as [Double]
+pathParser("""{"key":4.5}""")
+res0:Double = 4.5
+
+//parser a value at the end of a path through a nested json object
+val nestedPathParser = path / "key1" / "key2" -> as List[Char] minlength 2
+nestedPathParser("""{"key1":{"key2":['a','b','c']}}""")
+res1:List[Char] = List('a','b','c')
+
+//parse a default value where the path is not found
+var defaultPathParser = path / "key" -> as Option[String]
+defaultPathParser("""{"key2":"test"}""")
+res2:Option[String] = None
+```
+
 ####Parsing stream
 
 Will parse a json array into a TraversableOnce collection object

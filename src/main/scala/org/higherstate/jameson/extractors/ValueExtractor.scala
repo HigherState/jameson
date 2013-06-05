@@ -8,6 +8,6 @@ import org.higherstate.jameson.exceptions.InvalidTokenException
 trait ValueExtractor[T] extends Extractor[Any,  T] {
   def parse(tokenizer:Tokenizer, path: Path) = tokenizer.head match {
     case t:ValueToken => apply(t, path)
-    case token        => Failure(InvalidTokenException(this, "Expected Boolean token", token, path))
+    case token        => Failure(InvalidTokenException(this, "Expected String token", token, path))
   }
 }

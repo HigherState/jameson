@@ -17,4 +17,6 @@ case class MapParser[T](parser:Parser[T]) extends Parser[Map[String,T]] {
     case KeyToken(key)  => parser.parse(tokenizer.moveNext, path + key).flatMap(r => toMap(tokenizer.moveNext(), path).map(_ + (key -> r)))
     case token          => Failure(InvalidTokenException(this, "Expected object end token or key token", token, path))
   }
+
+  override def default:Option[Map[String,T]] = Some(Map.empty)
 }

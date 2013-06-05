@@ -16,5 +16,7 @@ case class ListParser[T](parser:Parser[T]) extends Parser[List[T]] {
     case ArrayEndToken => Success(Nil)
     case _             => parser.parse(tokenizer, path + index).flatMap(r => append(tokenizer.moveNext(), path, index + 1).map(r :: _))
   }
+
+  override def default:Option[List[T]] = Some(Nil)
 }
 

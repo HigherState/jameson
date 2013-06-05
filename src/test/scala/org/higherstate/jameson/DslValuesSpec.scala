@@ -331,4 +331,43 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       (as [String] is email).parse("\"test\"").isFailure mustEqual (true)
     }
   }
+
+  "handle path parsing" should {
+    "handle single path found" in {
+      val s = path / "key" -> as [Int]
+      val r = s.parse("""{"key":3}""")
+      r mustEqual Success(3)
+    }
+    "handle double path found" in {
+      val s = path / "key1" / "key2" -> as [String]
+      s.parse("""{"key2":5,"key1":{"key1":{"key":"value"},"key2":"result"}}""") mustEqual Success("result")
+    }
+
+    "handle single path not found, but with default" in {
+      val s = path / "key" -> asOption [Double]
+      s.parse("""{}""") mustEqual Success(None)
+      s.parse("""{"key2":45}""") mustEqual Success(None)
+      s.parse("""{"key":null}""") mustEqual Success(None)
+    }
+
+    "handle double path not found, but with default" in {
+      val s = path / "key" / "key" -> asOption [Double]
+      s.parse("""{}""") mustEqual Success(None)
+      s.parse("""{"key2":{}}""") mustEqual Success(None)
+      s.parse("""{"key":{}}""") mustEqual Success(None)
+      s.parse("""{"key":null}""").isFailure mustEqual true
+      s.parse("""{"key":45}""").isFailure mustEqual true
+      s.parse("""{"key":{"key":null}}""") mustEqual Success(None)
+    }
+
+    "handle object at end of path" in {
+      val s = path / "key" -> as [Child1]
+      s.parse("""{"key":{"tInt":4}}""") mustEqual Success(Child1(4))
+    }
+
+    "handle list at end of path" in {
+      val s = path / "key" -> asList [String]
+      s.parse("""{"key":["one","two","three"]}""") mustEqual Success(List("one", "two", "three"))
+    }
+  }
 }

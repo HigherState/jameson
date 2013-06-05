@@ -283,6 +283,17 @@ object Dsl {
       PartialParser(key, registry[T], Some(default), func)
   }
 
+
+  object path {
+    def /(key:String) = PathHolder(key, None)
+  }
+
+  case class PathHolder(pathKey:String, holder:Option[PathHolder]) {
+    def /(key:String) = PathHolder(key, Some(this))
+    def ->[T](parser:Parser[T]):Parser[T] =
+      holder.map(_.->(PathParser(pathKey, parser))).getOrElse(PathParser(pathKey, parser))
+  }
+
   object nestedAs {
     def apply[T](implicit classTag:ClassTag[T]) = AnyRefParser[T]
   }

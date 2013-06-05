@@ -8,7 +8,7 @@ import org.higherstate.jameson.exceptions.{InvalidValueException, InvalidTokenEx
 trait LongExtractor[T] extends Extractor[Long,  T] {
   def parse(tokenizer:Tokenizer, path: Path) = tokenizer.head match {
     case LongToken(value) => apply(value, path)
-    case token            => Failure(InvalidTokenException(this, "Expected Boolean token", token, path))
+    case token            => Failure(InvalidTokenException(this, "Expected Long token", token, path))
   }
 }
 
@@ -29,6 +29,6 @@ trait LongRangeExtractor[T] extends Extractor[Long, T] {
         else if (max < value) Some(InvalidValueException(this, s"Expected number to be less than or equal to $max", value, path))
         else None
       }).map(Failure(_)).getOrElse(apply(value, path))
-    case token            => Failure(InvalidTokenException(this, "Expected Boolean token", token, path))
+    case token            => Failure(InvalidTokenException(this, "Expected Long token", token, path))
   }
 }
