@@ -10,7 +10,7 @@ trait Tokenizer {
 
   def dropNext():Tokenizer = this.moveNext.drop()
 
-  private def drop():Tokenizer = this.head match {
+  def drop():Tokenizer = this.head match {
     case (token:BadToken) => this
     case ArrayStartToken  => {
       this.moveNext()

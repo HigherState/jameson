@@ -1,21 +1,21 @@
 package org.higherstate.jameson.parsers
 
-import org.higherstate.jameson.tokenizers.{ObjectEndToken, KeyToken, ObjectStartToken, Tokenizer}
+import org.higherstate.jameson.tokenizers._
 import org.higherstate.jameson.Path
 import util.{Success, Failure, Try}
-import org.higherstate.jameson.exceptions.{KeyNotFoundException, InvalidTokenException}
+import org.higherstate.jameson.exceptions._
+import org.higherstate.jameson.tokenizers.KeyToken
 
-case class PathParser[T](pathKey:String, parser:Parser[T]) extends Parser[T] {
+case class ObjectPathParser[T](pathKey:String, parser:Parser[T]) extends Parser[T] {
   def parse(tokenizer: Tokenizer, path: Path): Try[T] = tokenizer.head match {
     case ObjectStartToken => findMatch(tokenizer.moveNext(), path)
     case token            => Failure(InvalidTokenException(this, "Expected object start token", token, path))
   }
 
   private def findMatch(tokenizer:Tokenizer, path: Path):Try[T] = tokenizer.head match {
-    case KeyToken(key) if key == pathKey => {
+    case KeyToken(key) if key == pathKey =>
       parser.parse(tokenizer.moveNext(), path + key).flatMap(value => dropRemainingKeys(tokenizer.moveNext(), path, value))
-    }
-    case KeyToken(key)                   => findMatch(tokenizer.dropNext(), path)
+    case KeyToken(key)                   => findMatch(tokenizer.dropNext(), path + key)
     case ObjectEndToken                  => parser.default.map(Success(_)).getOrElse(Failure(KeyNotFoundException(this, pathKey, path)))
     case token                           => Failure(InvalidTokenException(this, "Expected a key or object end token", token, path))
   }
@@ -28,3 +28,4 @@ case class PathParser[T](pathKey:String, parser:Parser[T]) extends Parser[T] {
 
   override def default:Option[T] = parser.default
 }
+

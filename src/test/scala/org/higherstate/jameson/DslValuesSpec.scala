@@ -82,7 +82,7 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       (asMap("tInt" -> "nInt" -> as[Int]) is excludekeys).parse(json) mustEqual Success(Map("nInt" -> 3))
     }
     "supports required option with key not found" in {
-      (asMap("tInt" -> as[Int], "tBool" -> as[Boolean], "tMap" -> asMap[Any], "tList" -> asList [Any], "tFloat" -> getAs[Float] is required) is excludekeys).parse(json) mustEqual Success(map + ("tFloat" -> None))
+      (asMap("tInt" -> as[Int] is required , "tBool" -> as[Boolean], "tMap" -> asMap[Any], "tList" -> asList [Any], "tFloat" -> getAs[Float] is required) is excludekeys).parse(json) mustEqual Success(map + ("tFloat" -> None))
     }
     "supports required option with default value" in {
       (asMap("tInt" -> as[Int], "tBool" -> as[Boolean], "tMap" -> asMap[Any], "tList" -> asList [Any], "tFloat" -> getAsOrElse[Float](3.5F) is required) is excludekeys).parse(json) mustEqual Success(map + ("tFloat" -> 3.5F))
@@ -108,6 +108,11 @@ class DslValuesSpec extends WordSpec with MustMatchers {
     "Fails if json is object" in {
       asList[Any].parse("""{"key":"value"}""").isFailure mustEqual true
     }
+//    "Flatten" in {
+//      val p1 = asList[Int] to flatten
+//      val p = asList(asOption[Int]) to flatten
+//      p
+//    }
   }
 
   "Traversable List Parser" should {
@@ -368,6 +373,22 @@ class DslValuesSpec extends WordSpec with MustMatchers {
     "handle list at end of path" in {
       val s = path / "key" -> asList [String]
       s.parse("""{"key":["one","two","three"]}""") mustEqual Success(List("one", "two", "three"))
+    }
+
+    "handle single int path" in {
+      val s = path / 0 -> as [Int]
+      s.parse("[2,3,4]") mustEqual Success(2)
+    }
+
+    "handle double int path" in {
+      val s= path / 3 / 2 -> as [Boolean]
+      s.parse("""[[true],{"key":"value"},[1,2,2,2,3],[true,true,true]]""") mustEqual Success(true)
+    }
+
+    "handle mixed path" in {
+      val s = path / 2 / "key" / 0 -> as [String]
+      s.parse("""[[1,3,4],{"key":"value"}, {"key":["one",3,"four"]}, [3,4,[4,5]]]""") mustEqual Success("one")
+
     }
   }
 }

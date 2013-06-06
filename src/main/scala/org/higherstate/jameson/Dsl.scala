@@ -42,6 +42,9 @@ object Dsl {
   trait IsRequired
   case object required extends IsRequired
 
+  trait ToFlatten
+  case object flatten extends ToFlatten
+
   trait IsValidator
   case object email extends IsValidator
   case object nonempty extends IsValidator
@@ -120,6 +123,10 @@ object Dsl {
 
     override def default = parser.default
   }
+
+//  implicit case class FlattenWrapper[U,T <: TraversableOnce[U], V <: TraversableOnce[T]](self:Parser[V]) extends AnyVal {
+//    def to(flatten:ToFlatten) = FlattenParser(self)
+//  }
 
   case class Tuple2Wrapper[T1,T2](parser:Parser[(T1,T2)]) extends Parser[(T1, T2)] {
     def map[U](func:(T1,T2) => U) = Pipe2Parser(parser, func)
@@ -285,13 +292,24 @@ object Dsl {
 
 
   object path {
-    def /(key:String) = PathHolder(key, None)
+    def /(key:String) = ObjectPathHolder(key, None)
+    def /(index:Int) = ArrayIndexHolder(index, None)
   }
 
-  case class PathHolder(pathKey:String, holder:Option[PathHolder]) {
-    def /(key:String) = PathHolder(key, Some(this))
+  sealed trait PathHolder {
+    def ->[T](parser:Parser[T]):Parser[T]
+    def /(key:String) = ObjectPathHolder(key, Some(this))
+    def /(index:Int) = ArrayIndexHolder(index, Some(this))
+  }
+
+  case class ObjectPathHolder(pathKey:String, holder:Option[PathHolder]) extends PathHolder {
     def ->[T](parser:Parser[T]):Parser[T] =
-      holder.map(_.->(PathParser(pathKey, parser))).getOrElse(PathParser(pathKey, parser))
+      holder.map(_.->(ObjectPathParser(pathKey, parser))).getOrElse(ObjectPathParser(pathKey, parser))
+  }
+
+  case class ArrayIndexHolder(index:Int, holder:Option[PathHolder]) extends PathHolder {
+    def ->[T](parser:Parser[T]):Parser[T] =
+      holder.map(_.->(ArrayIndexParser(index, parser))).getOrElse(ArrayIndexParser(index, parser))
   }
 
   object nestedAs {
