@@ -220,6 +220,7 @@ object Dsl {
     def apply[T](parser:Parser[T]) =
       ParserWrapper(OptionParser(parser))
   }
+
   sealed trait getAsOrElseMethods {
     def apply[T <: Any](orElse:T)(implicit registry:Registry, t:TypeTag[T]) =
       ParserWrapper(OrElseParser(default[T], orElse))
@@ -240,6 +241,10 @@ object Dsl {
   object getAsOrElse extends getAsOrElseMethods
 
   object ? extends OptionMethods with getAsOrElseMethods
+
+  object self {
+    def apply[T](func:() => Parser[T]) = LazyParser(func)
+  }
 
   object asList {
     def apply[T <: Any](implicit registry:Registry, t:TypeTag[T]) = ParserWrapper(ListParser(default[T]))

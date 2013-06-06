@@ -4,6 +4,8 @@ import org.scalatest.WordSpec
 import org.higherstate.jameson.DefaultRegistry._
 import org.higherstate.jameson.Dsl._
 import org.scalatest.matchers.MustMatchers
+import org.higherstate.jameson.parsers.Parser
+import scala.util.Success
 
 class NestedStructuresSpec extends WordSpec with MustMatchers {
 
@@ -27,6 +29,13 @@ class NestedStructuresSpec extends WordSpec with MustMatchers {
       val json = """{"int":3,"dType":"one","parents":[{"type":"Child1", "tInt":3},{"tInt":3, "type":"Child1"},{"tBool":false, "type":"Child2"}], "pType":"two"}"""
       val r = doubleMatchParser(json)
       r.isSuccess mustEqual (true)
+    }
+  }
+
+  "self referencing json validation" should {
+    "handle self reference in selector" in {
+      lazy val parser:Parser[ParentContainer] = as [ParentContainer]("parent" -> asOption(self (() => parser)))
+      parser.parse("""{"parent":{"parent":{"parent":{}}}}""") mustEqual Success(ParentContainer(Some(ParentContainer(Some(ParentContainer(Some(ParentContainer(None))))))))
     }
   }
 }
