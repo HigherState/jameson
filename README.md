@@ -315,14 +315,20 @@ parser("""{
 res1:Try[RecursiveChild2] = Success(RecursiveChild2("one", Some(RecursiveChild1(2, RecursiveChild2("three",None)))))
 ```
 
-####Parsing stream
+####Parsing stream and left folds
 
-Will parse a json array into a TraversableOnce collection object
+Will parse a json array into a TraversableOnce collection object.  LeftFold can also be performed on a stream parser
 
 ```scala
 //parse an array of objects
 val streamParser = asStream [SimpleClass]
 streamParser("""[{"string":"one","int":1},{"string":"two","int":2},{"string":"three","int":3}]""")
+
+//parse the average of an array of ints
+val averageParser = asStream[Int].foldLeft((0, 0))((a, i) => (a._1 + i, a._2 + 1)) map (a => a._1 /a._2)
+averageParser.parse("[1,2,3,4,5,6,7,8,9]")
+res0:Try[Int] = Success(5)
+
 ```
 
 ####Parsing either
