@@ -174,28 +174,6 @@ groupParser("""{
   }""")
 ```
 
-####Path
-
-This is used if only a required value or object is nested down a path in the JSON. Key values or array indexes may be 
-traversed.
-
-```scala
-//Extract value from nested json
-val pathParser = path / "number" / "value" -> as [Int]
-pathParser("""{"number":{"value":3}}""")
-res0:Try[Int] = Success(3)
-
-//Extract list from nested json
-val pathListParser = path / "list" -> asList [Int]
-pathListParser("""{"list":[1,2,3,4]}""")
-res1:Try[List[Int]] = Success(List(1,2,3,4))
-
-//Extract object from array
-val pathArrayParser = path / "list" / 1 -> as [SimpleClass]
-pathArrayParser("""{"list":[{"string":"one","int":1},{"string":"two","int":2}]}""")
-res2:Try[SimpleClass] = Success(SimpleClass("two",2))
-```
-
 ####Option and defaults
 
 For parsing as an option, both getAs, or asOption maybe used.  
@@ -273,10 +251,11 @@ floatsParser("[1.4,1.1,2.76]")
 res1:List[Float] = List(1.4,1.1,2.76)
 ```
 
-####Path mapping
+####Paths
 
-You can select a path through nested json objects, parsing on the result of a single key.  If any part of the path is not found, a failure
-will be returned, unless the parser has a default value such as Option -> None, List -> Nil, Map -> Map.empty or a getAsOrElse default value.
+Can select a path through nested json objects and arrays, parsing on the result of a single key or array index respectively.  
+If any part of the path is not found, a failure will be returned, unless the parser has a default value such as 
+Option -> None, List -> Nil, Map -> Map.empty or a getAsOrElse default value.
 
 ```scala
 //parse a value at the end of a path
@@ -293,6 +272,47 @@ res1:List[Char] = List('a','b','c')
 var defaultPathParser = path / "key" -> as Option[String]
 defaultPathParser("""{"key2":"test"}""")
 res2:Option[String] = None
+
+//Extract object from array
+val pathArrayParser = path / "list" / 1 -> as [SimpleClass]
+pathArrayParser("""{"list":[{"string":"one","int":1},{"string":"two","int":2}]}""")
+res3:Try[SimpleClass] = Success(SimpleClass("two",2))
+```
+
+####Recursive parser
+
+If the json structure is recursive, the parser can be made to reference itself.  The parser must be lazy evaluated and explicitly 
+typed.
+
+```Scala
+case class ParentContainer(parent:Option[ParentContainer])
+
+//recursive parser across a single class
+lazy val parser:Parser[ParentContainer] = as [ParentContainer]("parent" -> asOption(self (parser)))
+parser.parse("""{
+    "parent":{
+        "parent":{
+            "parent":{}
+        }
+    }
+}""") 
+res0:Try[ParentContainer] = Success(ParentContainer(Some(ParentContainer(Some(ParentContainer(Some(ParentContainer(None))))))))
+
+case class RecursiveChild1(value:Int, child:RecursiveChild2)
+case class RecursiveChild2(value:String, child:Option[RecursiveChild1])
+
+//recursive parser across 2 case classes
+lazy val parser:Parser[RecursiveChild2] =  as [RecursiveChild2] ("child" -> asOption [RecursiveChild1] ("child" -> self(parser)))
+parser("""{
+    "value":"one",
+    "child":{
+        "value":2,
+        "child":{
+            "value":"three"
+        }
+    }
+}""") 
+res1:Try[RecursiveChild2] = Success(RecursiveChild2("one", Some(RecursiveChild1(2, RecursiveChild2("three",None)))))
 ```
 
 ####Parsing stream
