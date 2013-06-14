@@ -35,8 +35,7 @@ import org.higherstate.jameson.DefaultRegistry._
         "w":150,
         "color":14321232,
         "fillColor":null
-    }
-             """
+    }"""
 
   val parser =
     matchAs("shape",
@@ -173,6 +172,28 @@ groupParser("""{
   "int":10,
   "bool":false
   }""")
+```
+
+####Path
+
+This is used if only a required value or object is nested down a path in the JSON. Key values or array indexes may be 
+traversed.
+
+```scala
+//Extract value from nested json
+val pathParser = path / "number" / "value" -> as [Int]
+pathParser("""{"number":{"value":3}}""")
+res0:Try[Int] = Success(3)
+
+//Extract list from nested json
+val pathListParser = path / "list" -> asList [Int]
+pathListParser("""{"list":[1,2,3,4]}""")
+res1:Try[List[Int]] = Success(List(1,2,3,4))
+
+//Extract object from array
+val pathArrayParser = path / "list" / 1 -> as [SimpleClass]
+pathArrayParser("""{"list":[{"string":"one","int":1},{"string":"two","int":2}]}""")
+res2:Try[SimpleClass] = Success(SimpleClass("two",2))
 ```
 
 ####Option and defaults
