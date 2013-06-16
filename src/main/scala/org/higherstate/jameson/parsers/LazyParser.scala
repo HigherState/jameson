@@ -5,7 +5,7 @@ import org.higherstate.jameson.Path
 import scala.util.Try
 
 case class LazyParser[T](getParser:() => Parser[T]) extends Parser[T] {
-  private lazy val parser = getParser()
+  private lazy val parser:Parser[T] = getParser()
 
   def parse(tokenizer: Tokenizer, path: Path): Try[T] = parser.parse(tokenizer, path)
 }

@@ -34,8 +34,18 @@ class NestedStructuresSpec extends WordSpec with MustMatchers {
 
   "self referencing json validation" should {
     "handle self reference in selector" in {
-      lazy val parser:Parser[ParentContainer] = as [ParentContainer]("parent" -> asOption(self (() => parser)))
+      lazy val parser:Parser[ParentContainer] = as [ParentContainer]("parent" -> asOption(self (parser)))
       parser.parse("""{"parent":{"parent":{"parent":{}}}}""") mustEqual Success(ParentContainer(Some(ParentContainer(Some(ParentContainer(Some(ParentContainer(None))))))))
+    }
+
+    "parse with no recursing in a two level recursion" in {
+      lazy val parser:Parser[RecursiveChild1] = as [RecursiveChild1] ("child" -> as [RecursiveChild2] ("child" -> asOption(self(parser))))
+      parser("""{"value":1,"child":{"value":"two"}}""") mustEqual Success(RecursiveChild1(1, RecursiveChild2("two", None)))
+    }
+
+    "parse with recursion in a two level recursion" in {
+      lazy val parser:Parser[RecursiveChild2] =  as [RecursiveChild2] ("child" -> asOption [RecursiveChild1] ("child" -> self(parser)))
+      parser("""{"value":"one","child":{"value":2,"child":{"value":"three"}}}""") mustEqual Success(RecursiveChild2("one", Some(RecursiveChild1(2, RecursiveChild2("three",None)))))
     }
   }
 }

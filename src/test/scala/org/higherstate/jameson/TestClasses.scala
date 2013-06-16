@@ -14,6 +14,8 @@ case class MapChild(map:Map[String,Any]) extends Collections
 case class ListChild(list:List[Any]) extends Collections
 case class ListCharChild(list:List[Char]) extends Collections
 case class ListParents(int:Int, parents:List[Parent])
+case class RecursiveChild1(value:Int, child:RecursiveChild2)
+case class RecursiveChild2(value:String, child:Option[RecursiveChild1])
 
 case class ChildDouble(tDouble:Double)
 case class ChildByte(tByte:Byte)

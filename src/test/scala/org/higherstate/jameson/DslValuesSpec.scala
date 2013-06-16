@@ -115,17 +115,6 @@ class DslValuesSpec extends WordSpec with MustMatchers {
 //    }
   }
 
-  "Traversable List Parser" should {
-    "succeed if is a list" in {
-      asStream[Any].parse("""[1,false,"text",[1,2,3],{}]""").get.toList mustEqual (List(Success(1), Success(false), Success("text"), Success(List(1,2,3)), Success(Map.empty)))
-    }
-    "Fail only failure element is reached" in {
-      val r = asStream(as[Boolean]).parse("""[true, true, 3, false]""").get.toList
-      r(2).isFailure mustEqual true
-      r must have size (3)
-    }
-  }
-
   "Either parser" should {
     "Succeed simple left" in {
       asEither[Int, String].parse("4") mustEqual(Success(Left(4)))
@@ -365,6 +354,10 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       s.parse("""{"key":{"key":null}}""") mustEqual Success(None)
     }
 
+    "handle value at end of path" in {
+      val pathParser = path / "number" / "value" -> as [Int]
+      pathParser("""{"number":{"value":3}}""") mustEqual Success(3)
+    }
     "handle object at end of path" in {
       val s = path / "key" -> as [Child1]
       s.parse("""{"key":{"tInt":4}}""") mustEqual Success(Child1(4))
@@ -381,14 +374,27 @@ class DslValuesSpec extends WordSpec with MustMatchers {
     }
 
     "handle double int path" in {
-      val s= path / 3 / 2 -> as [Boolean]
+      val s = path / 3 / 2 -> as [Boolean]
       s.parse("""[[true],{"key":"value"},[1,2,2,2,3],[true,true,true]]""") mustEqual Success(true)
     }
 
     "handle mixed path" in {
       val s = path / 2 / "key" / 0 -> as [String]
       s.parse("""[[1,3,4],{"key":"value"}, {"key":["one",3,"four"]}, [3,4,[4,5]]]""") mustEqual Success("one")
+    }
+  }
 
+  "fold" should {
+    "calculate a sum" in {
+      val sumParser = fold(0)((a, i) => a + i)
+      sumParser.parse("[1,2,3,4,5,6,7,8,9]") mustEqual Success(45)
+    }
+  }
+
+  "foldLeft" should {
+    "calculate an average" in {
+      val averageParser = foldLeft[Int, (Int, Int)]((0,0))((a, i) => (a._1 + i, a._2 + 1)) map (a => a._1 /a._2)
+      averageParser.parse("[1,2,3,4,5,6,7,8,9]") mustEqual Success(5)
     }
   }
 }

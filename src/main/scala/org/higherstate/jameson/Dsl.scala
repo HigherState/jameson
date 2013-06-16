@@ -6,6 +6,7 @@ import reflect.runtime.universe._
 import org.higherstate.jameson.tokenizers.Tokenizer
 import scala.reflect.ClassTag
 import scala.util.matching.Regex
+import scala.util.Try
 
 object Dsl {
 
@@ -41,9 +42,6 @@ object Dsl {
 
   trait IsRequired
   case object required extends IsRequired
-
-  trait ToFlatten
-  case object flatten extends ToFlatten
 
   trait IsValidator
   case object email extends IsValidator
@@ -81,7 +79,6 @@ object Dsl {
       case parser                => newParser(ValidatorParser(parser, List(validator)))
     }
     protected def newParser(parser:Parser[U]):T
-
   }
 
   trait RequirableAddValidator[U, T] extends AddValidator[U, T] {
@@ -123,10 +120,6 @@ object Dsl {
 
     override def default = parser.default
   }
-
-//  implicit case class FlattenWrapper[U,T <: TraversableOnce[U], V <: TraversableOnce[T]](self:Parser[V]) extends AnyVal {
-//    def to(flatten:ToFlatten) = FlattenParser(self)
-//  }
 
   case class Tuple2Wrapper[T1,T2](parser:Parser[(T1,T2)]) extends Parser[(T1, T2)] {
     def map[U](func:(T1,T2) => U) = Pipe2Parser(parser, func)
@@ -170,6 +163,7 @@ object Dsl {
       ParserWrapper(ClassParser[T](selectorsList1.toList ++ selectorsList2.toList ++ selectorsList3.toList ++ selectors.toList, registry))
     def apply[U <: List[T],T](p:Parser[T]) = ParserWrapper(ListParser(p))
   }
+
   object asTuple {
     def apply[T1,T2](p1:Parser[T1], p2:Parser[T2]) =
       Tuple2Wrapper(Tuple2ListParser(p1,p2))
@@ -243,7 +237,7 @@ object Dsl {
   object ? extends OptionMethods with getAsOrElseMethods
 
   object self {
-    def apply[T](func:() => Parser[T]) = LazyParser(func)
+    def apply[T](func: => Parser[T]) = LazyParser(() => func)
   }
 
   object asList {
@@ -252,8 +246,8 @@ object Dsl {
   }
 
   object asStream {
-    def apply[T <: Any](implicit registry:Registry, t:TypeTag[T]) = ParserWrapper(TraversableOnceParser(default[T]))
-    def apply[T <: Any](parser:Parser[T]) = ParserWrapper(TraversableOnceParser(parser))
+    def apply[T <: Any](implicit registry:Registry, t:TypeTag[T]) = TraversableOnceParser(default[T])
+    def apply[T <: Any](parser:Parser[T]) = TraversableOnceParser(parser)
   }
 
   object asMap {
@@ -295,6 +289,35 @@ object Dsl {
       PartialParser(key, registry[T], Some(default), func)
   }
 
+  object fold {
+    def apply[T <: Any](initial:T)(func:(T, T) => T)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(FoldParser(default[T], initial, func))
+    def apply[T <: Any](parser:Parser[T])(initial:T)(func:(T,T) => T) =
+      ParserWrapper(FoldParser(parser, initial, func))
+    def apply[T <: AnyRef](selectors:KeySelectorExt[_]*)(initial:T)(func:(T,T) => T)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(FoldParser(ClassParser[T](selectors.toList, registry), initial, func))
+    def apply[T <: AnyRef](selectorsList:Seq[KeySelectorExt[_]], selectors:KeySelectorExt[_]*)(initial:T)(func:(T,T) => T)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(FoldParser(ClassParser[T](selectorsList.toList ++ selectors.toList, registry), initial, func))
+    def apply[T <: AnyRef](selectorsList1:Seq[KeySelectorExt[_]], selectorsList2:Seq[KeySelectorExt[_]], selectors:KeySelectorExt[_]*)(initial:T)(func:(T,T) => T)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(FoldParser(ClassParser[T](selectorsList1.toList ++ selectorsList2.toList ++ selectors.toList, registry), initial, func))
+    def apply[T <: AnyRef](selectorsList1:Seq[KeySelectorExt[_]], selectorsList2:Seq[KeySelectorExt[_]], selectorsList3:Seq[KeySelectorExt[_]], selectors:KeySelectorExt[_]*)(initial:T)(func:(T,T) => T)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(FoldParser(ClassParser[T](selectorsList1.toList ++ selectorsList2.toList ++ selectorsList3.toList ++ selectors.toList, registry), initial, func))
+  }
+
+  object foldLeft {
+    def apply[T <: Any, U](initial:U)(func:(U, T) => U)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(FoldParser(default[T], initial, func))
+    def apply[T <: Any, U](parser:Parser[T])(initial:U)(func:(U,T) => U) =
+      ParserWrapper(FoldParser(parser, initial, func))
+    def apply[T <: AnyRef, U](selectors:KeySelectorExt[_]*)(initial:U)(func:(U,T) => U)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(FoldParser(ClassParser[T](selectors.toList, registry), initial, func))
+    def apply[T <: AnyRef, U](selectorsList:Seq[KeySelectorExt[_]], selectors:KeySelectorExt[_]*)(initial:U)(func:(U,T) => U)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(FoldParser(ClassParser[T](selectorsList.toList ++ selectors.toList, registry), initial, func))
+    def apply[T <: AnyRef, U](selectorsList1:Seq[KeySelectorExt[_]], selectorsList2:Seq[KeySelectorExt[_]], selectors:KeySelectorExt[_]*)(initial:U)(func:(U,T) => U)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(FoldParser(ClassParser[T](selectorsList1.toList ++ selectorsList2.toList ++ selectors.toList, registry), initial, func))
+    def apply[T <: AnyRef, U](selectorsList1:Seq[KeySelectorExt[_]], selectorsList2:Seq[KeySelectorExt[_]], selectorsList3:Seq[KeySelectorExt[_]], selectors:KeySelectorExt[_]*)(initial:U)(func:(U,T) => U)(implicit registry:Registry, typeTag:TypeTag[T]) =
+      ParserWrapper(FoldParser(ClassParser[T](selectorsList1.toList ++ selectorsList2.toList ++ selectorsList3.toList ++ selectors.toList, registry), initial, func))
+  }
 
   object path {
     def /(key:String) = ObjectPathHolder(key, None)
