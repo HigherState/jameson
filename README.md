@@ -315,20 +315,31 @@ parser("""{
 res1:Try[RecursiveChild2] = Success(RecursiveChild2("one", Some(RecursiveChild1(2, RecursiveChild2("three",None)))))
 ```
 
-####Parsing stream and left folds
+####Parsing stream 
 
-Will parse a json array into a TraversableOnce collection object.  LeftFold can also be performed on a stream parser
+Will parse a json array into a TraversableOnce collection object. Each element is in an individual try as it will not be
+parsed until called.
 
 ```scala
 //parse an array of objects
 val streamParser = asStream [SimpleClass]
 streamParser("""[{"string":"one","int":1},{"string":"two","int":2},{"string":"three","int":3}]""")
+```
 
-//parse the average of an array of ints
-val averageParser = asStream[Int].foldLeft((0, 0))((a, i) => (a._1 + i, a._2 + 1)) map (a => a._1 /a._2)
+####Fold and Fold Left
+
+Will parse array values into a folding operation.
+
+```scala
+//Sum values in an array
+val sumParser = fold(0)((a, i) => a + i)
+sumParser.parse("[1,2,3,4,5,6,7,8,9]")
+res0:Try[Int] = Success(45)
+
+//Calculate average
+val averageParser = foldLeft[Int, (Int, Int)]((0,0))((a, i) => (a._1 + i, a._2 + 1)) map (a => a._1 / a._2)
 averageParser.parse("[1,2,3,4,5,6,7,8,9]")
-res0:Try[Int] = Success(5)
-
+res1:Try[Int] = Success(5)
 ```
 
 ####Parsing either
@@ -342,19 +353,48 @@ val eitherParser = asEither[Int, String]
 
 //parsing an either with nested complex selectors
 val classParser = asEither (as [SimpleClass], as [Nested Class])
-
 ```
 
 ####Matching parser
 
-Will parse an json object matching on either a key value pair, or the existance of a key.  Partial functions can be used
-as well.  The matching parser causes buffering of tokens.
+Will parse an json object matching on either a key value pair, or the existance of a key.  
+When matching on existence of a key, if more than one match is found, precedence is given in order of the parsers.
+Partial functions can be used as well.  The matching parser causes buffering of tokens.
+
+```scala
+case class Square(width:Int)
+case class Rectangle(height:Int,width:Int)
+case class Circle(radius:Int)
+
+//match on a key value, no default provided
+val shapeParser = matchAs("shape", "sq" -> as [Square], "rect" -> as [Rectangle], "circ" -> as [Circle])
+shapeParser("""{"shape":"sq","width":10}""")
+res0:Try[AnyRef] = Success(Square(10))
+
+//match on class type name, Rectangle is default if no shape key found
+val typeNameParser = matchAs("type", "Rectangle", as [Square], as [Rectangle], as [Circle])
+typeNameParser("""{"radius":23,"type":"Circle"}""")
+res1:Try[AnyRef] = Success(Circle(23))
+
+//match on existence of key
+val existsParser = matchAs("height" -> as [Rectangle], "width" -> as [Square], "radius" -> as [Circle])
+existsParser("""{"width":100,"height":200}""")
+res2:Try[AnyRef] = Success(Rectangle(200,100))
+
+//partial function match
+val partialParser = matchAs[String, AnyRef]("type"){
+case "circ" | "Circle"    => as [Circle]
+case "rect" | "Rectangle" => as [Rectangle]
+case _                    => as [Square]
+}
+```
 
 ####Try parser
 
 Will attempt to parse the json object in each successive parser until a successful parse occurs.  If all fails, the the failure
 from the last parser will be returned.  The try parser causes buffering of tokens.
 
+####Map parser
 
 [HigherState]: http://higher-state.blogspot.com
 [Jackson]: http://jackson.codehaus.org/
