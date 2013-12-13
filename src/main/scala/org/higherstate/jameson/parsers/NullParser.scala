@@ -10,4 +10,6 @@ case object NullParser extends Parser[Null] {
     case NullToken => Success(null)
     case token     => Failure(InvalidTokenException(this, "Expected null token", token, path))
   }
+
+  def schema = Map("type" -> "null")
 }

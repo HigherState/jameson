@@ -15,4 +15,6 @@ case object UUIDParser extends Parser[UUID] {
       else Success(UUID.fromString(value))
     case token              => Failure(InvalidTokenException(this, "Expected String token", token, path))
   }
- }
+
+  def schema = Map("type" -> "string", "pattern" -> uuidRegex.toString)
+}

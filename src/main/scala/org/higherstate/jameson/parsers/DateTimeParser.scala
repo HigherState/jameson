@@ -14,4 +14,6 @@ case class DateTimeParser(implicit val dateTimeFormatter:Option[DateTimeFormatte
     }.recoverWith{ case ex:Throwable => Failure(InvalidValueException(this, "Not a valid date time string", value, path))}
     case token              => Failure(InvalidTokenException(this, "Expected String token", token, path))
   }
+
+  def schema = ???
 }

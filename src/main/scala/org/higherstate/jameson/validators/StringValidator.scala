@@ -19,6 +19,8 @@ case class RegEx(regex:Regex) extends StringValidator {
   protected def validate(value:String, path:Path) =
     if (regex.pattern.matcher(value).matches()) None
     else Some(InvalidValueException(this, "Invalid string format", value, path))
+
+  def schema = Map("pattern" -> regex.toString())
 }
 
 case object IsEmail extends StringValidator {
@@ -28,4 +30,6 @@ case object IsEmail extends StringValidator {
   protected def validate(value:String, path:Path) =
     if (regex.pattern.matcher(value).matches()) None
     else Some(InvalidValueException(this, "Value is not a valid email address", value, path))
+
+  def schema = Map("email" -> true)
 }

@@ -119,6 +119,8 @@ object Dsl {
     def parse(tokenizer:Tokenizer, path:Path) = parser.parse(tokenizer, path)
 
     override def default = parser.default
+
+    def schema = parser.schema
   }
 
   case class Tuple2Wrapper[T1,T2](parser:Parser[(T1,T2)]) extends Parser[(T1, T2)] {
@@ -127,6 +129,8 @@ object Dsl {
     def |>[U](func:(T1,T2) => U) = Pipe2Parser(parser, func)
     def |>[V](func:((T1, T2)) => V) = PipeParser(parser, func)
     def parse(tokenizer:Tokenizer, path:Path) = parser.parse(tokenizer, path)
+
+    def schema = parser.schema
   }
   case class Tuple3Wrapper[T1,T2,T3](parser:Parser[(T1,T2,T3)]) extends Parser[(T1, T2, T3)] {
     def map[U](func:(T1,T2,T3) => U) = Pipe3Parser(parser, func)
@@ -134,6 +138,8 @@ object Dsl {
     def |>[U](func:(T1,T2,T3) => U) = Pipe3Parser(parser, func)
     def |>[V](func:((T1, T2, T3)) => V) = PipeParser(parser, func)
     def parse(tokenizer:Tokenizer, path:Path) = parser.parse(tokenizer, path)
+
+    def schema = parser.schema
   }
   case class Tuple4Wrapper[T1,T2,T3,T4](parser:Parser[(T1,T2,T3,T4)]) extends Parser[(T1, T2, T3, T4)] {
     def map[U](func:(T1,T2,T3,T4) => U) = Pipe4Parser(parser, func)
@@ -141,6 +147,8 @@ object Dsl {
     def |>[U](func:(T1,T2,T3,T4) => U) = Pipe4Parser(parser, func)
     def |>[V](func:((T1, T2, T3, T4)) => V) = PipeParser(parser, func)
     def parse(tokenizer:Tokenizer, path:Path) = parser.parse(tokenizer, path)
+
+    def schema = parser.schema
   }
   case class Tuple5Wrapper[T1,T2,T3,T4,T5](parser:Parser[(T1,T2,T3,T4,T5)]) extends Parser[(T1, T2, T3, T4, T5)] {
     def map[U](func:(T1,T2,T3,T4,T5) => U) = Pipe5Parser(parser, func)
@@ -148,6 +156,8 @@ object Dsl {
     def |>[U](func:(T1,T2,T3,T4,T5) => U) = Pipe5Parser(parser, func)
     def |>[V](func:((T1, T2, T3, T4, T5)) => V) = PipeParser(parser, func)
     def parse(tokenizer:Tokenizer, path:Path) = parser.parse(tokenizer, path)
+
+    def schema = parser.schema
   }
 
   object as {
@@ -342,6 +352,10 @@ object Dsl {
 
   object nestedAs {
     def apply[T](implicit classTag:ClassTag[T]) = AnyRefParser[T]
+  }
+
+  object to {
+    def apply[T](t:T) = OverrideParser(t)
   }
 
   private def default[T](implicit registry:Registry, t:TypeTag[T]) = registry.get[T].getOrElse(ClassParser[T](Nil, registry))

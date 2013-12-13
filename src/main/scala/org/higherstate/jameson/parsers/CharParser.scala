@@ -12,4 +12,6 @@ case object CharParser extends Parser[Char] {
       else Failure(InvalidValueException(this, "Expected a single character value", value, path))
     case token              => Failure(InvalidTokenException(this, "Expected boolean token", token, path))
   }
+
+  def schema = Map("type" -> "string", "maxLength" -> 1)
  }

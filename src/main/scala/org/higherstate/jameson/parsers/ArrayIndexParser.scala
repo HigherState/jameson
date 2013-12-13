@@ -31,4 +31,6 @@ case class ArrayIndexParser[T](index:Int, parser:Parser[T]) extends Parser[T] {
   }
 
   override def default:Option[T] = parser.default
+
+  def schema = Map("type" -> "array", "items" -> (0 until index).foldLeft(List(parser.schema))((a, i) =>  Map.empty[String, Any] :: a))
 }

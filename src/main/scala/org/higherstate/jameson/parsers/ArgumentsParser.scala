@@ -33,11 +33,13 @@ trait ObjectArgumentsParser[+U] extends Parser[U] {
     }
     case token            => Failure(InvalidTokenException(this, "Expected object start token", token, path))
   }
+  //TODO: args not found in grouped object not coming through as correct error
 
   private def buildArgs(tokenizer:Tokenizer, path:Path, buffers:Map[String, ObjectBuffer]): Try[Array[Any]] =
     tokenizer.head match {
       case KeyToken(key) =>
-        arguments.get(key).map(p => p._1.parse(tokenizer.moveNext(), path + key).flatMap { r =>
+        arguments.get(key)
+          .map(p => p._1.parse(tokenizer.moveNext(), path + key).flatMap { r =>
           buildArgs(tokenizer.moveNext, path, buffers).map { args =>
             args(p._2) = r
             args
@@ -65,6 +67,9 @@ trait ListArgumentParser[U] extends Parser[U] {
     case (token, Nil)                                      => Failure(InvalidTokenException(this, "Expected array end token", token, path + index))
     case (_, head :: tail)                                 => head.parse(tokenizer, path + index).flatMap(h => buildArgs(tail, index + 1, tokenizer.moveNext(), path).map(t => h :: t))
   }
+
+  def schema =
+    Map("type" -> "list", "items" -> parsers.map(_.schema), "additionalItems" -> false)
 }
 
 object NoArgFound {

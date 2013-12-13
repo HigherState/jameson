@@ -11,4 +11,6 @@ case object ByteParser extends LongRangeExtractor[Byte] {
   val lessThanExclusive = false
 
   def apply(value:Long, path:Path) = Success(value.toByte)
+
+  def schema = Map("type" -> "integer", "minimum" -> Byte.MinValue, "maximum" -> Byte.MaxValue)
 }

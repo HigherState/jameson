@@ -25,4 +25,6 @@ trait Parser[+U] {
 
   def default:Option[U] = None
   def hasDefault = default.nonEmpty
+
+  def schema:Map[String, Any]
 }

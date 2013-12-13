@@ -19,4 +19,6 @@ case class MapParser[T](parser:Parser[T]) extends Parser[Map[String,T]] {
   }
 
   override def default:Option[Map[String,T]] = Some(Map.empty)
+
+  def schema = Map("type" -> "object", "additionalProperties" -> true)
 }

@@ -282,7 +282,7 @@ res3:Try[SimpleClass] = Success(SimpleClass("two",2))
 ####Recursive parser
 
 If the json structure is recursive, the parser can be made to reference itself.  The parser must be lazy evaluated and explicitly 
-typed.
+typed.  If you other parsers vals are referenced by this parser, make sure they are evaluated first, otherwise they may appear as null.
 
 ```Scala
 case class ParentContainer(parent:Option[ParentContainer])

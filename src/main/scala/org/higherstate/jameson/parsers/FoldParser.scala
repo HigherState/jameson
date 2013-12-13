@@ -24,4 +24,6 @@ case class FoldParser[T, U](parser:Parser[T], initial:U, func:(U,T) => U) extend
   }
 
   override def default:Option[U] = Some(initial)
+
+  def schema = Map("type" -> "array", "items" -> parser.schema)
 }

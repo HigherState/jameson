@@ -27,5 +27,7 @@ case class ObjectPathParser[T](pathKey:String, parser:Parser[T]) extends Parser[
   }
 
   override def default:Option[T] = parser.default
+
+  def schema = Map("type" -> "object", "properties" -> Map(pathKey -> parser.schema))
 }
 

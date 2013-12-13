@@ -10,4 +10,6 @@ case object StringParser extends Parser[String] {
     case StringToken(value) => Success(value)
     case token              => Failure(InvalidTokenException(this, "Expected String token", token, path))
   }
+
+  def schema = Map("type" -> "string")
 }

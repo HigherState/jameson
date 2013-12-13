@@ -19,11 +19,15 @@ case class MinLength(compare:Int) extends LengthValidator {
   protected def validate(value:Int, path:Path):Option[Throwable] =
     if (value < compare) Some(InvalidValueException(this, s"Expected value length to be greater than $compare", value, path))
     else None
+
+  def schema = Map("minItems" -> compare)
 }
 
 case class MaxLength(compare:Int) extends LengthValidator {
   protected def validate(value:Int, path:Path):Option[Throwable] =
     if (value > compare) Some(InvalidValueException(this, s"Expected value length to be less than $compare", value, path))
     else None
+
+  def schema = Map("maxItems" -> compare)
 }
 

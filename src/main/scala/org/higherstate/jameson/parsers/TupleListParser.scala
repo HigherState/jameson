@@ -32,3 +32,4 @@ case class Tuple5ListParser[T1, T2, T3, T4, T5](p1:Parser[T1], p2:Parser[T2], p3
     case (_1:T1 @unchecked) :: (_2:T2 @unchecked) :: (_3:T3 @unchecked) :: (_4:T4 @unchecked) :: (_5:T5 @unchecked) :: Nil  => (_1, _2, _3, _4, _5)
   }}
 }
+

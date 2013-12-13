@@ -14,4 +14,6 @@ case class AnyValParser(registry:Registry) extends Parser[Any] {
     case b:BooleanToken   => registry.defaultBooleanParser.parse(tokenizer, path)
     case token            => Failure(InvalidTokenException(this, "Unexpected token", token, path))
   }
+
+  def schema = Map.empty
 }

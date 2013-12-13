@@ -18,5 +18,7 @@ case class ListParser[T](parser:Parser[T]) extends Parser[List[T]] {
   }
 
   override def default:Option[List[T]] = Some(Nil)
+
+  def schema = Map("type" -> "array", "items" -> parser.schema)
 }
 

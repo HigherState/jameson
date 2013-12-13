@@ -1,3 +1,7 @@
 package org.higherstate.jameson.exceptions
 
-trait PathException extends Throwable
+import org.higherstate.jameson.Path
+
+trait PathException extends Throwable {
+  def path:Path
+}

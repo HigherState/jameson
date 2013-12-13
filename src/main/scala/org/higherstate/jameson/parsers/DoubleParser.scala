@@ -7,11 +7,7 @@ import org.higherstate.jameson.extractors.{DoubleRangeExtractor, DoubleExtractor
 
 case object DoubleParser extends DoubleExtractor[Double] {
   def apply(value:Double, path:Path) = Success(value)
+
+  def schema = Map("type" -> "number", "minimum" -> Double.MinValue, "maximum" -> Double.MaxValue)
 }
-
-case class DoubleRangeParser(greaterThan:Option[Double], greaterThanExclusive:Boolean, lessThan:Option[Double], lessThanExclusive:Boolean) extends DoubleRangeExtractor[Double] {
-  def apply(value:Double, path:Path) = Success(value)
-}
-
-
 

@@ -47,6 +47,31 @@ case class ClassParser[+T:TypeTag](selectors:List[KeySelector[String,_]], regist
 
   private def getUnspecifiedParser(typeSymbol:TypeSymbol) =
     registry.get(typeSymbol).getOrElse(EmbeddedClassParser(typeSymbol, registry))
+
+  def schema = {
+    //should use arguments
+    val m1 = Map(
+      "type" -> "object",
+      "additionalProperties" -> false
+    )
+    val single = selectors.filter(s => !s.isGroup && s.keys.size == 1)
+    val group = selectors.filter(_.isGroup)
+    //todo required in group
+    val m2 =
+      if (single.isEmpty && group.isEmpty) m1
+      else m1 + ("properties" ->
+        group.foldLeft(single.map(s => s.keys.head -> s.parser.schema).toMap[String,Any]){ (m, g) =>
+          g.parser.schema.get("properties").map(m ++ _.asInstanceOf[Map[String, Any]]).getOrElse(m)
+        })
+    val options = selectors.filter(s => !s.isGroup && s.keys.size > 1)
+    val m3 =
+      if (options.isEmpty) m2
+      else m2 + ("patternProperties" -> options.map(s => s.keys.mkString("|") -> s.parser.schema).toMap)
+
+    val r = selectors.filter(!_.parser.hasDefault)
+    if (r.isEmpty) m3
+    else m3 + ("required" -> (single.map(_.keys.head) ++ group.map(_.keys.mkString("|"))))
+  }
 }
 
 case class EmbeddedClassParser(typeSymbol:TypeSymbol, registry:Registry) extends ObjectArgumentsParser[Any] {
@@ -65,4 +90,14 @@ case class EmbeddedClassParser(typeSymbol:TypeSymbol, registry:Registry) extends
     getArgs(tokenizer, path).flatMap { args =>
       Try(currentMirror.reflectClass(typeSymbol.asClass).reflectConstructor(constr).apply(args:_*)).orElse(Failure(InvalidClassArgsException(this, args, path)))
     }
+
+  def schema = {
+    val m = Map("type" -> "object", "additionalProperties" -> false)
+    val s =
+      if (arguments.isEmpty) m
+      else m + ("properties" -> arguments.map{s => s._1 -> s._2._1.schema})
+    val r = arguments.filter(!_._2._1.hasDefault)
+    if (r.isEmpty) s
+    else s + ("required" -> r.map(_._1))
+  }
 }

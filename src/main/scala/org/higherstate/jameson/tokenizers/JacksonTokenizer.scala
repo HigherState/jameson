@@ -3,6 +3,7 @@ package org.higherstate.jameson.tokenizers
 import com.fasterxml.jackson.core.{JsonFactory, JsonToken, JsonParser}
 import scala.util.Try
 import java.io.{InputStream, Reader}
+import org.higherstate.jameson.exceptions.UnexpectedTokenException
 
 object JacksonTokenizer {
   def apply(jsonString:String):Tokenizer = {
@@ -45,8 +46,8 @@ private case class JacksonTokenizerInstance(jsonParser:JsonParser) extends Token
       case JsonToken.VALUE_TRUE             => BooleanToken(true)
       case JsonToken.VALUE_FALSE            => BooleanToken(false)
       case JsonToken.VALUE_EMBEDDED_OBJECT  => AnyRefToken(jsonParser.getEmbeddedObject)
-      case JsonToken.NOT_AVAILABLE          => ???
-      case JsonToken.FIELD_NAME             => ???
+      case JsonToken.NOT_AVAILABLE          => UnknownToken(jsonParser.getCurrentToken)
+      case JsonToken.FIELD_NAME             => UnknownToken(jsonParser.getCurrentToken)
       case null                             => EndToken
     }}.recover{ case e:Throwable => BadToken(e)}.get
 

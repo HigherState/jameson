@@ -48,4 +48,5 @@ class NestedStructuresSpec extends WordSpec with MustMatchers {
       parser("""{"value":"one","child":{"value":2,"child":{"value":"three"}}}""") mustEqual Success(RecursiveChild2("one", Some(RecursiveChild1(2, RecursiveChild2("three",None)))))
     }
   }
+
 }

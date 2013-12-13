@@ -12,4 +12,13 @@ case class OrElseParser[T](parser:Parser[T], _default:T) extends Parser[T] {
   }
 
   override def default = Some(_default)
+
+  def schema = parser.schema + ("defaultValue" -> (_default match {
+    case number:Number => number
+    case string:String => string
+    case char:Char => char
+    case bool:Boolean => bool
+    case s:Seq[_] => "array"
+    case _        => "object"
+  }))
 }

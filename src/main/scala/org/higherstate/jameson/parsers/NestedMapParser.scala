@@ -25,6 +25,14 @@ sealed trait NestedMapParser extends Parser[Map[String, Any]] {
 
   protected def toMap(tokenizer:Tokenizer, path:Path, hold:Set[String]):Try[(Map[String, Any], Set[String])]
   protected def toMap(tokenizer:Tokenizer, path:Path): Try[Map[String, Any]]
+
+  def schema:Map[String, Any] = {
+    val m = Map("type" -> "object")
+    val s = m ++ selectors.map(s => s._1 -> s._2.parser.schema)
+    val r = selectors.filter(!_._2.isRequired)
+    if (r.isEmpty) s
+    else s + ("required" -> r.map(_._1))
+  }
 }
 
 case class OpenMapParser(selectors:Map[String, KeySelector[String,_]], defaultParser:Parser[Any]) extends NestedMapParser {
@@ -50,6 +58,8 @@ case class OpenMapParser(selectors:Map[String, KeySelector[String,_]], defaultPa
     }
     case token          => Failure(InvalidTokenException(this, "Expected object end token or key token", token, path))
   }
+
+  override def schema = super.schema + ("additionalProperties" -> true)
 }
 
 case class DropMapParser(selectors:Map[String, KeySelector[String,_]]) extends NestedMapParser {
@@ -69,6 +79,8 @@ case class DropMapParser(selectors:Map[String, KeySelector[String,_]]) extends N
     }).getOrElse(toMap(tokenizer.dropNext(), path))
     case token          => Failure(InvalidTokenException(this, "Expected object end token or key token", token, path))
   }
+
+  override def schema = super.schema + ("additionalProperties" -> true)
 }
 
 case class CloseMapParser(selectors:Map[String, KeySelector[String,_]]) extends NestedMapParser {
@@ -88,4 +100,6 @@ case class CloseMapParser(selectors:Map[String, KeySelector[String,_]]) extends 
     }).getOrElse(Failure(UnexpectedKeyException(this, key, path)))
     case token          => Failure(InvalidTokenException(this, "Expected object end token or key token", token, path))
   }
+
+  override def schema = super.schema + ("additionalProperties" -> false)
 }

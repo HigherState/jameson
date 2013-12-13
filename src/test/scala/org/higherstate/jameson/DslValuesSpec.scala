@@ -108,11 +108,6 @@ class DslValuesSpec extends WordSpec with MustMatchers {
     "Fails if json is object" in {
       asList[Any].parse("""{"key":"value"}""").isFailure mustEqual true
     }
-//    "Flatten" in {
-//      val p1 = asList[Int] to flatten
-//      val p = asList(asOption[Int]) to flatten
-//      p
-//    }
   }
 
   "Either parser" should {
@@ -199,7 +194,7 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       r mustEqual(Success(Map("value" -> 3, "type" -> "t2")))
     }
     "Succeed with default value on partial function" in {
-      val p2 = matchAs[String, Map[String,Any]]("type"){
+      val p2 = matchAs[String, Map[String,Any]]("type", "t1"){
         case "t1"         =>  asMap("value" -> as[Boolean])
         case "t2" | "t3"  =>  asMap("value" -> as[Int], "type" -> as[AnyVal])
       }

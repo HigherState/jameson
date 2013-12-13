@@ -17,22 +17,40 @@ case class GreaterThan(compare:Number) extends NumericValidator {
   protected def validate(value:Number, path:Path) =
     if (value.doubleValue <= compare.doubleValue) Some(InvalidValueException(this, s"Expected number to be greater than $compare", value, path))
     else None
+
+  def schema = Map(
+    "minimum" -> compare,
+    "exclusiveMinimum" -> true
+  )
 }
 
 case class LessThan(compare:Number) extends NumericValidator {
   protected def validate(value:Number, path:Path) =
     if (value.doubleValue >= compare.doubleValue) Some(InvalidValueException(this, s"Expected number to be less than $compare", value, path))
     else None
+
+  def schema = Map(
+    "maximum" -> compare,
+    "exclusiveMaximum" -> true
+  )
 }
 
 case class GreaterThanEquals(compare:Number) extends NumericValidator {
   protected def validate(value:Number, path:Path) =
     if (value.doubleValue < compare.doubleValue) Some(InvalidValueException(this, s"Expected number to be greater than or equal to $compare", value, path))
     else None
+
+  def schema = Map(
+    "minimum" -> compare
+  )
 }
 
 case class LessThanEquals(compare:Number) extends NumericValidator {
   protected def validate(value:Number, path:Path) =
     if (value.doubleValue > compare.doubleValue) Some(InvalidValueException(this, s"Expected number to be less than or equal to $compare", value, path))
     else None
+
+  def schema = Map(
+    "maximum" -> compare
+  )
 }

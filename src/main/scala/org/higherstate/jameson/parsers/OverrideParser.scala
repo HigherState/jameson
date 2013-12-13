@@ -1,12 +1,16 @@
 package org.higherstate.jameson.parsers
 
-/**
- * Created with IntelliJ IDEA.
- * User: jamie.pullar
- * Date: 02/07/13
- * Time: 14:55
- * To change this template use File | Settings | File Templates.
- */
-class OverrideParser {
+import org.higherstate.jameson.tokenizers.Tokenizer
+import org.higherstate.jameson.Path
+import scala.util.{Success, Try}
 
+
+case class OverrideParser[T](t:T) extends Parser[T] {
+  def parse(tokenizer: Tokenizer, path: Path): Try[T] = {
+    tokenizer.dropObjectOrArray()
+    Success(t)
+  }
+
+  def schema: Map[String, Any] = ???
+  override def default = Some(t)
 }

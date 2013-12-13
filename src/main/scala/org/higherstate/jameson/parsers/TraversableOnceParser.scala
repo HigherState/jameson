@@ -27,4 +27,6 @@ case class TraversableOnceParser[T](parser:Parser[T]) extends Parser[Traversable
       r
     }
   }
+
+  def schema = Map("type" -> "array", "items" -> parser.schema)
 }

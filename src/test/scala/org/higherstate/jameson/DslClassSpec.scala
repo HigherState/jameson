@@ -113,6 +113,15 @@ class DslClassSpec extends WordSpec with MustMatchers  {
       as[ChildDouble]("tDouble" -> as [Double] > -30).parse("""{"tDouble":-35}""").isFailure mustEqual (true)
     }
   }
+
+  "parse with override" should {
+    "ignore set value" in {
+      val p = as[Canine]("age" -> to(13))
+      p.parse("""{"animalType":"dog","name":"bob","age":12}""")  mustEqual Success(Canine("dog", "bob", 13))
+      p.parse("""{"animalType":"dog","name":"bob"}""")  mustEqual Success(Canine("dog", "bob", 13))
+    }
+
+  }
 }
 
 

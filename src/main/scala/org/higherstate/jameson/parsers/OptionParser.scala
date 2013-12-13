@@ -12,5 +12,7 @@ case class OptionParser[T](parser:Parser[T]) extends Parser[Option[T]] {
   }
 
   override def default = Some(None)
+
+  def schema = parser.schema + ("defaultValue" -> null)
 }
 

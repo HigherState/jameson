@@ -11,4 +11,6 @@ case object ShortParser extends LongRangeExtractor[Short] {
   val lessThanExclusive = false
 
   def apply(value:Long, path:Path) = Success(value.toShort)
+
+  def schema = Map("type" -> "integer", "minimum" -> Short.MinValue, "maximum" -> Short.MaxValue)
 }

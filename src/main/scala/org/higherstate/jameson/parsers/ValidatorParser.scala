@@ -12,4 +12,6 @@ case class ValidatorParser[+T](parser:Parser[T], validators:List[Validator]) ext
     }
 
   override def default = parser.default
+
+  def schema = parser.schema ++ validators.flatMap(_.schema)
 }

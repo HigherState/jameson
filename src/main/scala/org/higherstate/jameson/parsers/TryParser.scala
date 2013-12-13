@@ -11,4 +11,6 @@ case class TryParser[+T](parsers:Seq[Parser[T]]) extends Parser[T] {
     val buffer = tokenizer.getBuffer()
     parsers.toIterator.map(_.parse(buffer.getTokenizer, path)).find(_.isSuccess).getOrElse(Failure(NoSuccessfulParserFoundException(this, path)))
   }
+
+  def schema = Map("oneOf" -> parsers.map(_.schema))
 }

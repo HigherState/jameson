@@ -13,9 +13,9 @@ case class MatchParser[T, U](identifierKey:String, identifierParser:Parser[T], d
   def parse(tokenizer:Tokenizer, path: Path): Try[U] = tokenizer.head match {
     case ObjectStartToken => {
       val buffer = tokenizer.getBuffer()
-      findMatch(buffer.getTokenizer.moveNext(), path).flatMap{ key =>
+      findMatch(buffer.getTokenizer.moveNext(), path).flatMap { key =>
         matchParsers.get(key).map(_.parse(buffer.getTokenizer, path))
-          .getOrElse(Failure(ConditionalKeyMatchNotFoundException(this, identifierKey, path)))
+          .getOrElse(Failure(ConditionalKeyMatchNotFoundException(this, key, path)))
       }
     }
     case token            => Failure(InvalidTokenException(this, "Match expected an object start token", token, path))
@@ -29,6 +29,12 @@ case class MatchParser[T, U](identifierKey:String, identifierParser:Parser[T], d
     case ObjectEndToken                        => defaultKey.map(Success(_)).getOrElse(Failure(ConditionalKeyNotFoundException(this, identifierKey, path)))
     case token                                 => Failure(InvalidTokenException(this, "Expected a key or object end token", token, path))
   }
+
+  def schema = Map("type" -> "object", "oneOf" -> matchParsers.map{mp =>
+    val schema = mp._2.schema
+    val properties = schema.get("properties").map(_.asInstanceOf[Map[String, Any]]).getOrElse(Map.empty[String, Any])
+    schema + ("properties" -> (properties + (identifierKey ->  mp._1)))
+  })
 }
 
 case class PartialParser[T, U](identifierKey:String, identifierParser:Parser[T], defaultKey:Option[T], matchParsers:PartialFunction[T, Parser[U]]) extends Parser[U]{
@@ -38,7 +44,7 @@ case class PartialParser[T, U](identifierKey:String, identifierParser:Parser[T],
       val buffer = tokenizer.getBuffer()
       findMatch(buffer.getTokenizer.moveNext(), path).flatMap{ key =>
         matchParsers.lift(key).map(_.parse(buffer.getTokenizer, path))
-          .getOrElse(Failure(ConditionalKeyMatchNotFoundException(this, identifierKey, path)))
+          .getOrElse(Failure(ConditionalKeyMatchNotFoundException(this, key, path)))
       }
     }
     case token            => Failure(InvalidTokenException(this, "Match expected an object start token", token, path))
@@ -52,5 +58,5 @@ case class PartialParser[T, U](identifierKey:String, identifierParser:Parser[T],
     case token                                 => Failure(InvalidTokenException(this, "Expected a key or object end token", token, path))
   }
 
-
+  def schema = Map("type" -> "object")
 }

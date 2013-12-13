@@ -11,5 +11,7 @@ case class AnyRefParser[T](implicit typeTag:ClassTag[T]) extends Parser[T] {
     case AnyRefToken(value) if classTag[T].runtimeClass.isAssignableFrom(value.getClass) => Success(value.asInstanceOf[T])
     case token                                                                           => Failure(InvalidTokenException(this, "Expected boolean token", token, path))
   }
+
+  def schema = Map.empty
 }
 
