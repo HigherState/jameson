@@ -414,7 +414,35 @@ res3:Valid[Int] = Success(1)
 
 ```
 
-####Map parser
+####Map/Dynamic parser
+
+Json content can be parsed into a Map[String,?], or dynamic wrapper.  Individual properties can be validated against.  
+
+```scala
+//parse object into map or dynamic with any values
+val mapParser = asMap[Any]
+val dynParser = asDynamic[Any]
+
+//parse object with specified properties validated
+val mapParser = asMap("name" -> as[String], scores -> asList[Int])
+val dynParser = asDynamic("name" -> as[String], scores -> asList[Int])
+```
+
+The parser can be constructed such that any properties not specified will be excluded from the map or dynamic object.
+
+```scala
+val mapParser = asExclusiveMap("name" -> as[String], scores -> asList[Int])
+val dynParser = asExclusiveDynamic("name" -> as[String], scores -> asList[Int])
+```
+
+The parser can also be constructed such that any properties not specified will cause a validation failure.
+
+```scala
+val mapParser = asRestrictedMap("name" -> as[String], scores -> asList[Int])
+val dynParser = asRestrictedDynamic("name" -> as[String], scores -> asList[Int])
+```
+
+
 
 [HigherState]: http://higher-state.blogspot.com
 [Jackson]: http://jackson.codehaus.org/
