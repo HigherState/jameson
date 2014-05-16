@@ -25,6 +25,7 @@ object Extensions {
   }
 
   implicit class OptionExt[T](val self: Option[T]) extends AnyVal {
-    def mapOrElse[U](map:T => U,orElse:U) = self.map(map).getOrElse(orElse)
+    def mapOrElse[U](map:T => U,orElse:U) =
+      self.fold(orElse)(map)
   }
 }

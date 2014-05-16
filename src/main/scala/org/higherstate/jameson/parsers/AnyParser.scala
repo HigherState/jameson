@@ -1,12 +1,11 @@
 package org.higherstate.jameson.parsers
 
-import util.{Failure, Try}
-import org.higherstate.jameson.exceptions.InvalidTokenException
 import org.higherstate.jameson.{Registry, Path}
 import org.higherstate.jameson.tokenizers._
+import org.higherstate.jameson.failures._
 
 case class AnyParser(registry:Registry) extends Parser[Any] {
-  def parse(tokenizer:Tokenizer, path:Path): Try[Any] = tokenizer.head match {
+  def parse(tokenizer:Tokenizer, path:Path): Valid[Any] = tokenizer.head match {
     case s:StringToken    => registry.defaultTextParser.parse(tokenizer, path)
     case ObjectStartToken => registry.defaultObjectParser.parse(tokenizer, path)
     case ArrayStartToken  => registry.defaultArrayParser.parse(tokenizer, path)
@@ -15,7 +14,7 @@ case class AnyParser(registry:Registry) extends Parser[Any] {
     case NullToken        => registry.defaultNullParser.parse(tokenizer, path)
     case b:BooleanToken   => registry.defaultBooleanParser.parse(tokenizer, path)
     case a:AnyRefToken    => registry.defaultAnyRefParser.parse(tokenizer, path)
-    case token            => Failure(InvalidTokenException(this, "Unexpected token", token, path))
+    case token            => Failure(InvalidTokenFailure(this, "Unexpected token", token, path))
   }
 
   def schema = Map.empty

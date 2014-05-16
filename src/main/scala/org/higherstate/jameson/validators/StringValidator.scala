@@ -1,24 +1,26 @@
 package org.higherstate.jameson.validators
 
 import org.higherstate.jameson.Path
-import org.higherstate.jameson.exceptions.InvalidValueException
+import org.higherstate.jameson.failures.{ValidationFailure, InvalidValueFailure}
 import scala.util.matching.Regex
 
 trait StringValidator extends Validator {
 
   def apply(value:Any, path:Path) = value match {
-    case n:String => validate(n, path)
-    case value    => Some(InvalidValueException(this, "Value is not text", value, path))
+    case n:String =>
+      validate(n, path)
+    case v =>
+      Some(InvalidValueFailure(this, "Value is not text", v, path))
   }
 
-  protected def validate(value:String, path:Path):Option[Throwable]
+  protected def validate(value:String, path:Path):Option[ValidationFailure]
 }
 
 case class RegEx(regex:Regex) extends StringValidator {
 
   protected def validate(value:String, path:Path) =
     if (regex.pattern.matcher(value).matches()) None
-    else Some(InvalidValueException(this, "Invalid string format", value, path))
+    else Some(InvalidValueFailure(this, "Invalid string format", value, path))
 
   def schema = Map("pattern" -> regex.toString())
 }
@@ -29,7 +31,7 @@ case object IsEmail extends StringValidator {
 
   protected def validate(value:String, path:Path) =
     if (regex.pattern.matcher(value).matches()) None
-    else Some(InvalidValueException(this, "Value is not a valid email address", value, path))
+    else Some(InvalidValueFailure(this, "Value is not a valid email address", value, path))
 
   def schema = Map("email" -> true)
 }

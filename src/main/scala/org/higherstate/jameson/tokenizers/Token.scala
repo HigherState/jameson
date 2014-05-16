@@ -1,5 +1,7 @@
 package org.higherstate.jameson.tokenizers
 
+import org.higherstate.jameson.failures.ValidationFailure
+
 sealed trait Token extends Any
 sealed trait ValueToken extends Any with Token {
   def value:Any
@@ -14,7 +16,7 @@ case object EndToken extends Token
 
 case class KeyToken(value:String) extends AnyVal with Token
 
-case class BadToken(value:Throwable) extends AnyVal with Token
+case class BadToken(value:ValidationFailure) extends AnyVal with Token
 
 case class UnknownToken(value:Any) extends Token
 
@@ -27,6 +29,14 @@ case object NullToken extends ValueToken {
 }
 
 case class AnyRefToken(value:AnyRef) extends ValueToken
+
+
+object ValueToken {
+  def unapply(t:Token) = t match {
+    case t:ValueToken => Some(t)
+    case _ => None
+  }
+}
 
 
 

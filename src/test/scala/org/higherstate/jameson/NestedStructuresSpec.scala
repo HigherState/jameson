@@ -5,7 +5,7 @@ import org.higherstate.jameson.DefaultRegistry._
 import org.higherstate.jameson.Dsl._
 import org.scalatest.matchers.MustMatchers
 import org.higherstate.jameson.parsers.Parser
-import scala.util.Success
+import org.higherstate.jameson.failures.Success
 
 class NestedStructuresSpec extends WordSpec with MustMatchers {
 

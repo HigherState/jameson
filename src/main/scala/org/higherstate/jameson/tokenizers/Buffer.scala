@@ -35,7 +35,7 @@ private case class NestedBufferingTokenizer(tokenizer:BufferingTokenizer) extend
     tokenizer.moveNext()
     this
   }
-  override def getBuffer() = NestedBuffer(this, bufferToken)
+  override def getBuffer = NestedBuffer(this, bufferToken)
 
   def reset(_bufferToken:BufferToken) {
     tokenizer.reset(_bufferToken)
@@ -54,7 +54,7 @@ private case class BaseBufferingTokenizer(baseBuffer:BaseBuffer, var bufferToken
     }
     this
   }
-  override def getBuffer() = NestedBuffer(this, bufferToken)
+  override def getBuffer = NestedBuffer(this, bufferToken)
 
   def reset(_bufferToken:BufferToken) {
     bufferToken = _bufferToken

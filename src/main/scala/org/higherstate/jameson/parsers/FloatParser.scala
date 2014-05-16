@@ -1,8 +1,8 @@
 package org.higherstate.jameson.parsers
 
-import util.Success
 import org.higherstate.jameson.Path
 import org.higherstate.jameson.extractors.DoubleRangeExtractor
+import org.higherstate.jameson.failures.Success
 
 case object FloatParser extends DoubleRangeExtractor[Float] {
   val greaterThan = Some(Float.MinValue.toDouble)

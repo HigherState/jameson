@@ -12,7 +12,7 @@ class BufferedTokenizerSpec extends WordSpec with MustMatchers {
     "return to point when buffering starts" in {
       val map = JMap("number" -> 123, "entries" -> JList(JMap("one" -> 1), JMap("two" -> 2)))
       val tokenizer = JavaTokenizer(map)
-      val buffer = tokenizer.getBuffer()
+      val buffer = tokenizer.getBuffer
       val lb = new ListBuffer[Token]()
       val b = (1 to 5).foldLeft(buffer.getTokenizer){(t, _) => lb += t.head;t.moveNext()}
 

@@ -3,7 +3,7 @@ package org.higherstate.jameson
 import org.scalatest.WordSpec
 import org.higherstate.jameson.DefaultRegistry._
 import org.higherstate.jameson.Dsl._
-import scala.util._
+import org.higherstate.jameson.failures._
 import java.util
 import org.scalatest.matchers.MustMatchers
 
@@ -390,6 +390,18 @@ class DslValuesSpec extends WordSpec with MustMatchers {
     "calculate an average" in {
       val averageParser = foldLeft[Int, (Int, Int)]((0,0))((a, i) => (a._1 + i, a._2 + 1)) map (a => a._1 /a._2)
       averageParser.parse("[1,2,3,4,5,6,7,8,9]") mustEqual Success(5)
+    }
+  }
+
+  "convert to" should {
+    "convert a string to an int" in {
+      val convertStringParser = convertTo[Int]
+      convertStringParser.parse("4536") mustEqual Success(4536)
+      convertStringParser.parse("4536.00") mustEqual Success(4536)
+      convertStringParser.parse("\"4536\"") mustEqual Success(4536)
+      convertStringParser.parse("true") mustEqual Success(1)
+      convertStringParser.parse("4536.232").isFailure mustEqual true
+      convertStringParser.parse("\"4536.232\"").isFailure mustEqual true
     }
   }
 }

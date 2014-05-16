@@ -1,26 +1,28 @@
 package org.higherstate.jameson.parsers
 
 import reflect.runtime.universe._
-import util.{Failure, Try}
 import reflect.runtime._
-import org.higherstate.jameson.exceptions.InvalidClassArgsException
+import org.higherstate.jameson.failures._
 import org.higherstate.jameson.{KeySelector, Registry, Path}
 import org.higherstate.jameson.tokenizers._
 import scala.collection.mutable.ListBuffer
+import scala.util.Try
 
 case class ClassParser[+T:TypeTag](selectors:List[KeySelector[String,_]], registry:Registry) extends ObjectArgumentsParser[T] {
 
   def getClassName = typeOf[T].typeSymbol.asType.name.toString
 
   private val constr = typeOf[T].typeSymbol.typeSignature.members.filter(_.isMethod).map(_.asMethod).filter(_.isConstructor).head
-  protected lazy val (arguments, groups, template) = getArgumentsAndGroups()
+  protected lazy val (arguments, groups, template) = getArgumentsAndGroups
 
-  def parse(tokenizer:Tokenizer, path: Path): Try[T] =
+  def parse(tokenizer:Tokenizer, path: Path): Valid[T] =
     getArgs(tokenizer, path).flatMap { args =>
-      Try(currentMirror.reflectClass(typeOf[T].typeSymbol.asClass).reflectConstructor(constr).apply(args:_*).asInstanceOf[T]).orElse(Failure(InvalidClassArgsException(this, args, path)))
+      Try(currentMirror.reflectClass(typeOf[T].typeSymbol.asClass).reflectConstructor(constr).apply(args:_*).asInstanceOf[T])
+        .toOption
+        .fold[Valid[T]](Failure(InvalidClassArgsFailure(this, args, path)))(Success(_))
     }
 
-  private def getArgumentsAndGroups() = {
+  private def getArgumentsAndGroups = {
     val argsBuffer = new ListBuffer[(String, (Parser[_], Int))]()
     val groupBuffer = new ListBuffer[(Int, Parser[_], Set[String])]()
     val templateBuffer = new ListBuffer[Any]()
@@ -42,7 +44,7 @@ case class ClassParser[+T:TypeTag](selectors:List[KeySelector[String,_]], regist
       }
       case _:NullaryMethodType    => Map.empty
     }
-    (argsBuffer.toMap, groupBuffer.result, templateBuffer.toArray)
+    (argsBuffer.toMap, groupBuffer.result(), templateBuffer.toArray)
   }
 
   private def getUnspecifiedParser(typeSymbol:TypeSymbol) =
@@ -61,7 +63,7 @@ case class ClassParser[+T:TypeTag](selectors:List[KeySelector[String,_]], regist
       if (single.isEmpty && group.isEmpty) m1
       else m1 + ("properties" ->
         group.foldLeft(single.map(s => s.keys.head -> s.parser.schema).toMap[String,Any]){ (m, g) =>
-          g.parser.schema.get("properties").map(m ++ _.asInstanceOf[Map[String, Any]]).getOrElse(m)
+          g.parser.schema.get("properties").fold(m)(m ++ _.asInstanceOf[Map[String, Any]])
         })
     val options = selectors.filter(s => !s.isGroup && s.keys.size > 1)
     val m3 =
@@ -86,9 +88,11 @@ case class EmbeddedClassParser(typeSymbol:TypeSymbol, registry:Registry) extends
   protected lazy val template:Array[Any] = arguments.map(_._2).toList.sortBy(_._2).map(p => NoArgFound(p._1)).toArray
   protected val groups = Nil
 
-  def parse(tokenizer:Tokenizer, path: Path): Try[Any] =
+  def parse(tokenizer:Tokenizer, path: Path): Valid[Any] =
     getArgs(tokenizer, path).flatMap { args =>
-      Try(currentMirror.reflectClass(typeSymbol.asClass).reflectConstructor(constr).apply(args:_*)).orElse(Failure(InvalidClassArgsException(this, args, path)))
+      Try(currentMirror.reflectClass(typeSymbol.asClass).reflectConstructor(constr).apply(args:_*))
+        .toOption
+        .fold[Valid[Any]](Failure(InvalidClassArgsFailure(this, args, path)))(Success(_))
     }
 
   def schema = {

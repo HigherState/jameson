@@ -2,7 +2,7 @@ package org.higherstate.jameson
 
 import org.higherstate.jameson.DefaultRegistry._
 import org.higherstate.jameson.Dsl._
-import scala.util._
+import org.higherstate.jameson.failures._
 import org.scalatest.WordSpec
 import org.scalatest.matchers.MustMatchers
 
@@ -79,7 +79,7 @@ class DslClassSpec extends WordSpec with MustMatchers  {
 
   "parse as object" should {
     val classParser = matchAs("animalType", "dog" -> as[Canine], "cat" -> as[Feline])
-    val pet:Try[Object] = classParser("""{"animalType":"dog","name":"rufus","age":3}""")
+    val pet:Valid[Object] = classParser("""{"animalType":"dog","name":"rufus","age":3}""")
     pet mustEqual Success(Canine("dog", "rufus", 3))
   }
 

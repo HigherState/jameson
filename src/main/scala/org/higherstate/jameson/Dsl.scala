@@ -6,7 +6,6 @@ import reflect.runtime.universe._
 import org.higherstate.jameson.tokenizers.Tokenizer
 import scala.reflect.ClassTag
 import scala.util.matching.Regex
-import scala.util.Try
 
 object Dsl {
 
@@ -354,11 +353,17 @@ object Dsl {
     def apply[T](implicit classTag:ClassTag[T]) = AnyRefParser[T]
   }
 
+  object convertTo {
+    def apply[T](implicit classTag:TypeTag[T]) =
+      ParserWrapper(ConversionParser[T])
+  }
+
   object to {
     def apply[T](t:T) = OverrideParser(t)
   }
 
-  private def default[T](implicit registry:Registry, t:TypeTag[T]) = registry.get[T].getOrElse(ClassParser[T](Nil, registry))
+  private def default[T](implicit registry:Registry, t:TypeTag[T]) =
+    registry.get[T].getOrElse(ClassParser[T](Nil, registry))
 
 
   private def getClassName[T](parser:Parser[T]):String = parser match {

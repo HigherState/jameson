@@ -1,9 +1,8 @@
 package org.higherstate.jameson.parsers
 
-import scala.util.Success
 import org.higherstate.jameson.Path
-
-import org.higherstate.jameson.extractors.{DoubleRangeExtractor, DoubleExtractor}
+import org.higherstate.jameson.failures.Success
+import org.higherstate.jameson.extractors.DoubleExtractor
 
 case object DoubleParser extends DoubleExtractor[Double] {
   def apply(value:Double, path:Path) = Success(value)

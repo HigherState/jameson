@@ -3,7 +3,7 @@ package org.higherstate.jameson.tokenizers
 import com.fasterxml.jackson.core.{JsonFactory, JsonToken, JsonParser}
 import scala.util.Try
 import java.io.{InputStream, Reader}
-import org.higherstate.jameson.exceptions.UnexpectedTokenException
+import org.higherstate.jameson.failures.TokenizerFailure
 
 object JacksonTokenizer {
   def apply(jsonString:String):Tokenizer = {
@@ -49,18 +49,18 @@ private case class JacksonTokenizerInstance(jsonParser:JsonParser) extends Token
       case JsonToken.NOT_AVAILABLE          => UnknownToken(jsonParser.getCurrentToken)
       case JsonToken.FIELD_NAME             => UnknownToken(jsonParser.getCurrentToken)
       case null                             => EndToken
-    }}.recover{ case e:Throwable => BadToken(e)}.get
+    }}.recover{ case e:Throwable => BadToken(TokenizerFailure(e))}.get
 
 
   def moveNext() =
-    if (keyState == 0) Try(jsonParser.nextValue).map(_ => this).recover{ case e:Throwable => FailedTokenizer(BadToken(e))}.get
+    if (keyState == 0) Try(jsonParser.nextValue).map(_ => this).recover{ case e:Throwable => FailedTokenizer(BadToken(TokenizerFailure(e)))}.get
     else if (keyState == 1) {
       keyState = 2
       this
     }
     else if (keyState == 2) {
       keyState = 0
-      Try(jsonParser.nextValue).map(_ => this).recover{ case e:Throwable => FailedTokenizer(BadToken(e))}.get
+      Try(jsonParser.nextValue).map(_ => this).recover{ case e:Throwable => FailedTokenizer(BadToken(TokenizerFailure(e)))}.get
     }
     else this
 }

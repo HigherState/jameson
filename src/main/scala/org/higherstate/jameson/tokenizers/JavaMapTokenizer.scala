@@ -1,6 +1,6 @@
 package org.higherstate.jameson.tokenizers
 
-import org.higherstate.jameson.exceptions.UnexpectedValueException
+import org.higherstate.jameson.failures.UnexpectedValueFailure
 import org.higherstate.jameson.NoPath
 import org.higherstate.jameson.tokenizers.JavaTokenizer._
 
@@ -27,7 +27,7 @@ object JavaTokenizer {
     case b:Byte       => Left(LongToken(b))
     case s:Short      => Left(LongToken(s))
     case a:AnyRef     => Left(AnyRefToken(a))
-    case t            => Left(BadToken(UnexpectedValueException("Not a json value", t, NoPath)))
+    case t            => Left(BadToken(UnexpectedValueFailure("Not a json value", t, NoPath)))
   }
 }
 

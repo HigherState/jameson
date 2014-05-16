@@ -1,8 +1,8 @@
 package org.higherstate.jameson.parsers
 
-import util.Success
 import org.higherstate.jameson.Path
 import org.higherstate.jameson.extractors.LongRangeExtractor
+import org.higherstate.jameson.failures.Success
 
 case object ByteParser extends LongRangeExtractor[Byte] {
   val greaterThan = Some(Byte.MinValue.toLong)
