@@ -398,16 +398,19 @@ from the last parser will be returned.  The try parser causes buffering of token
 
 Will attempt to convert a mismatched token into the desired type.  Currently only for Strings and Primitives.
 
-```
+```scala
 val convertIntParser = convertTo [Int]
 convertIntParser("1")
 res0:Valid[Int] = Success(1)
+
 convertIntParser("\"1\"")
-res0:Valid[Int] = Success(1)
+res1:Valid[Int] = Success(1)
+
 convertIntParser("true")
-res0:Valid[Int] = Success(1)
+res2:Valid[Int] = Success(1)
+
 convertIntParser("1.0")
-res0:Valid[Int] = Success(1)
+res3:Valid[Int] = Success(1)
 
 ```
 
