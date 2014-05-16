@@ -98,7 +98,7 @@ case class DropMapParser(selectors:Map[String, KeySelector[String,_]]) extends N
   override def schema = super.schema + ("additionalProperties" -> true)
 }
 
-case class CloseMapParser(selectors:Map[String, KeySelector[String,_]]) extends NestedMapParser {
+case class ClosedMapParser(selectors:Map[String, KeySelector[String,_]]) extends NestedMapParser {
 
   protected def toMap(tokenizer:Tokenizer, path: Path, hold:Set[String]):Valid[(Map[String, Any], Set[String])] =
     tokenizer.head match {

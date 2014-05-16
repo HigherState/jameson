@@ -137,7 +137,7 @@ object SymbolicDsl {
   }
 
   def #!(selector:KeySelector[String, _], selectors:KeySelector[String, _]*) =
-    CloseMapParser((selectors :+ selector).flatMap(s => s.keys.map(_ -> s)).toMap)
+    ClosedMapParser((selectors :+ selector).flatMap(s => s.keys.map(_ -> s)).toMap)
 
   def #^(selector:KeySelector[String, _], selectors:KeySelector[String, _]*) =
     DropMapParser((selectors :+ selector).flatMap(s => s.keys.map(_ -> s)).toMap)

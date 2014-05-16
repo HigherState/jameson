@@ -6,6 +6,7 @@ import reflect.runtime.universe._
 import org.higherstate.jameson.tokenizers.Tokenizer
 import scala.reflect.ClassTag
 import scala.util.matching.Regex
+import org.omg.CORBA.DynAny
 
 object Dsl {
 
@@ -264,6 +265,31 @@ object Dsl {
       ParserWrapper(MapParser(default[T]))
     def apply(selectors:KeySelector[String, _]*)(implicit registry:Registry) =
       ParserWrapper(OpenMapParser(selectors.flatMap(s => s.keys.map((_, s))).toMap, registry.defaultUnknownParser))
+  }
+
+  object asExclusiveMap{
+    def apply(selector:KeySelector[String, _], selectors:KeySelector[String, _]*)(implicit registry:Registry) =
+      ParserWrapper(DropMapParser((selector :: selectors.toList).flatMap(s => s.keys.map((_, s))).toMap))
+  }
+
+  object asRestrictedMap{
+    def apply(selector:KeySelector[String, _], selectors:KeySelector[String, _]*)(implicit registry:Registry) =
+      ParserWrapper(ClosedMapParser((selector :: selectors.toList).flatMap(s => s.keys.map((_, s))).toMap))
+  }
+
+  object asDynamic {
+    def apply[T <: Any](implicit registry:Registry, t:TypeTag[T]) =
+      ParserWrapper(PipeParser(MapParser(default[T]), (m:Map[String,T]) => DynamicWrapper(m)))
+    def apply(selectors:KeySelector[String, _]*)(implicit registry:Registry) =
+      ParserWrapper(PipeParser(OpenMapParser(selectors.flatMap(s => s.keys.map((_, s))).toMap, registry.defaultUnknownParser), (m:Map[String, Any]) => DynamicWrapper(m)))
+  }
+  object asExclusiveDynamic{
+    def apply(selector:KeySelector[String, _], selectors:KeySelector[String, _]*)(implicit registry:Registry) =
+      ParserWrapper(PipeParser(DropMapParser((selector :: selectors.toList).flatMap(s => s.keys.map((_, s))).toMap), (m:Map[String, Any]) => DynamicWrapper(m)))
+  }
+  object asRestrictedDynamic{
+    def apply(selector:KeySelector[String, _], selectors:KeySelector[String, _]*)(implicit registry:Registry) =
+      ParserWrapper(PipeParser(ClosedMapParser((selector :: selectors.toList).flatMap(s => s.keys.map((_, s))).toMap), (m:Map[String, Any]) => DynamicWrapper(m)))
   }
 
   object tryAs {
