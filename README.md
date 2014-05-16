@@ -9,7 +9,7 @@ as well as the ability to pipe values into a function.
 Jameson can deserialize into case classes and nested case classes. It is fully designed to support 
 custom extension.
 
-Jameson parse returns a scala.util.Try object.  It will stop parsing on the first failure.
+Jameson parse returns a scalaz.validation object.  It current stops parsing on the first failure.
 
 Jameson's DSL supports validation on any nested value as well as conditional deserialization 
 and validation depending on key value matches. Jameson also supports key substitution.
@@ -183,30 +183,30 @@ To flatten the option with a default value, use getAsOrElse.
 //parsing an optional value
 val optionParser = getAs[Int]
 optionParser("3")
-res0:Try[Option[Int]] = Success(Some(3))
+res0:Valid[Option[Int]] = Success(Some(3))
 optionParser("null")
-res1:Try[Option[Int]] = Success(None)
+res1:Valid[Option[Int]] = Success(None)
 optionParser("")
-res2:Try[Option[Int]] = Success(None)
+res2:Valid[Option[Int]] = Success(None)
 
 //parsing a case class with Option parameter, can resolve type erasure
 case class OptionClass(float:Float,int:Option[Int])
 val optionClassParser = as [OptionClass] ("int" -> getAs [Int])
 optionParser("""{"float":3.5,"int":7}""")
-res0:Try[OptionClass] = Success(OptionClass(3.5, Some(7)))
+res0:Valid[OptionClass] = Success(OptionClass(3.5, Some(7)))
 optionParser("""{"float":3.5,"int":null}""")
-res0:Try[OptionClass] = Success(OptionClass(3.5, None))
+res0:Valid[OptionClass] = Success(OptionClass(3.5, None))
 optionParser("""{"float":3.5}""")
-res0:Try[OptionClass] = Success(OptionClass(3.5, None))
+res0:Valid[OptionClass] = Success(OptionClass(3.5, None))
 
 //parsing with a default value
 val defaultParser = getAsOrElse[String]("not found")
 defaultParser("\"result\"")
-res0:Try[String] = Success("result")
+res0:Valid[String] = Success("result")
 optionParser("null")
-res1:Try[String] = Success("not found")
+res1:Valid[String] = Success("not found")
 optionParser("")
-res2:Try[String] = Success("not found")
+res2:Valid[String] = Success("not found")
 
 val defaultClassParser = getAsOrElse [SimpleClass](SimpleClass("empty", 0))
 
@@ -276,7 +276,7 @@ res2:Option[String] = None
 //Extract object from array
 val pathArrayParser = path / "list" / 1 -> as [SimpleClass]
 pathArrayParser("""{"list":[{"string":"one","int":1},{"string":"two","int":2}]}""")
-res3:Try[SimpleClass] = Success(SimpleClass("two",2))
+res3:Valid[SimpleClass] = Success(SimpleClass("two",2))
 ```
 
 ####Recursive parser
@@ -296,7 +296,7 @@ parser.parse("""{
         }
     }
 }""") 
-res0:Try[ParentContainer] = Success(ParentContainer(Some(ParentContainer(Some(ParentContainer(Some(ParentContainer(None))))))))
+res0:Valid[ParentContainer] = Success(ParentContainer(Some(ParentContainer(Some(ParentContainer(Some(ParentContainer(None))))))))
 
 case class RecursiveChild1(value:Int, child:RecursiveChild2)
 case class RecursiveChild2(value:String, child:Option[RecursiveChild1])
@@ -312,7 +312,7 @@ parser("""{
         }
     }
 }""") 
-res1:Try[RecursiveChild2] = Success(RecursiveChild2("one", Some(RecursiveChild1(2, RecursiveChild2("three",None)))))
+res1:Valid[RecursiveChild2] = Success(RecursiveChild2("one", Some(RecursiveChild1(2, RecursiveChild2("three",None)))))
 ```
 
 ####Parsing stream 
@@ -339,7 +339,7 @@ res0:Try[Int] = Success(45)
 //Calculate average
 val averageParser = foldLeft[Int, (Int, Int)]((0,0))((a, i) => (a._1 + i, a._2 + 1)) map (a => a._1 / a._2)
 averageParser.parse("[1,2,3,4,5,6,7,8,9]")
-res1:Try[Int] = Success(5)
+res1:Valid[Int] = Success(5)
 ```
 
 ####Parsing either
@@ -369,17 +369,17 @@ case class Circle(radius:Int)
 //match on a key value, no default provided
 val shapeParser = matchAs("shape", "sq" -> as [Square], "rect" -> as [Rectangle], "circ" -> as [Circle])
 shapeParser("""{"shape":"sq","width":10}""")
-res0:Try[AnyRef] = Success(Square(10))
+res0:Valid[AnyRef] = Success(Square(10))
 
 //match on class type name, Rectangle is default if no shape key found
 val typeNameParser = matchAs("type", "Rectangle", as [Square], as [Rectangle], as [Circle])
 typeNameParser("""{"radius":23,"type":"Circle"}""")
-res1:Try[AnyRef] = Success(Circle(23))
+res1:Valid[AnyRef] = Success(Circle(23))
 
 //match on existence of key
 val existsParser = matchAs("height" -> as [Rectangle], "width" -> as [Square], "radius" -> as [Circle])
 existsParser("""{"width":100,"height":200}""")
-res2:Try[AnyRef] = Success(Rectangle(200,100))
+res2:Valid[AnyRef] = Success(Rectangle(200,100))
 
 //partial function match
 val partialParser = matchAs[String, AnyRef]("type"){
@@ -393,6 +393,26 @@ case _                    => as [Square]
 
 Will attempt to parse the json object in each successive parser until a successful parse occurs.  If all fails, the the failure
 from the last parser will be returned.  The try parser causes buffering of tokens.
+
+####Conversion parser
+
+Will attempt to convert a mismatched token into the desired type.  Currently only for Strings and Primitives.
+
+```scala
+val convertIntParser = convertTo [Int]
+convertIntParser("1")
+res0:Valid[Int] = Success(1)
+
+convertIntParser("\"1\"")
+res1:Valid[Int] = Success(1)
+
+convertIntParser("true")
+res2:Valid[Int] = Success(1)
+
+convertIntParser("1.0")
+res3:Valid[Int] = Success(1)
+
+```
 
 ####Map parser
 
