@@ -27,7 +27,7 @@ case class KeyMatcher[U](matchParsers:Seq[(String, Parser[U])]) extends Parser[U
     case ObjectEndToken =>
       Success(Set.empty)
     case token          =>
-      Failure(InvalidTokenFailure(this, "Expected a key or object end token", token, path))
+      Failure(UnexpectedTokenFailure("Expected a key or object end token", token, path))
   }
 
   def schema = Map("type" -> "object", "oneOf" -> matchParsers.map(_._2.schema))

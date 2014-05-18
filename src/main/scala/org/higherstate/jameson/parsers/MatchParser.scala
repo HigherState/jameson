@@ -21,16 +21,17 @@ case class MatchParser[T, U](identifierKey:String, identifierParser:Parser[T], d
 
 
   //Returns tokenizer with match key and value removed
-  private def findMatch(tokenizer:Tokenizer, path: Path):Valid[T] = tokenizer.head match {
-    case KeyToken(key) if key == identifierKey =>
-      identifierParser.parse(tokenizer.moveNext(), path + key)
-    case KeyToken(key) =>
-      findMatch(tokenizer.dropNext(), path)
-    case ObjectEndToken =>
-      defaultKey.fold[Valid[T]](Failure(ConditionalKeyNotFoundFailure(this, identifierKey, path)))(Success(_))
-    case token =>
-      Failure(InvalidTokenFailure(this, "Expected a key or object end token", token, path))
-  }
+  private def findMatch(tokenizer:Tokenizer, path: Path):Valid[T] =
+    tokenizer.head match {
+      case KeyToken(key) if key == identifierKey =>
+        identifierParser.parse(tokenizer.moveNext(), path + key)
+      case KeyToken(key) =>
+        findMatch(tokenizer.dropNext(), path)
+      case ObjectEndToken =>
+        defaultKey.fold[Valid[T]](Failure(ConditionalKeyNotFoundFailure(this, identifierKey, path)))(Success(_))
+      case token =>
+        Failure(UnexpectedTokenFailure("Expected a key or object end token", token, path))
+    }
 
   def schema = Map("type" -> "object", "oneOf" -> matchParsers.map{mp =>
     val schema = mp._2.schema

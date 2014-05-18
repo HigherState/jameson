@@ -21,7 +21,7 @@ case class ObjectPathParser[T](pathKey:String, parser:Parser[T]) extends Parser[
     case ObjectEndToken =>
       parser.default.fold[Valid[T]](Failure(KeyNotFoundFailure(this, pathKey, path)))(Success(_))
     case token =>
-      Failure(InvalidTokenFailure(this, "Expected a key or object end token", token, path))
+      Failure(UnexpectedTokenFailure("Expected a key or object end token", token, path))
   }
 
   private def dropRemainingKeys(tokenizer:Tokenizer, path:Path, value:T):Valid[T] = tokenizer.head match {
@@ -30,7 +30,7 @@ case class ObjectPathParser[T](pathKey:String, parser:Parser[T]) extends Parser[
     case ObjectEndToken =>
       Success(value)
     case token          =>
-      Failure(InvalidTokenFailure(this, "Expected a key or object end token", token, path))
+      Failure(UnexpectedTokenFailure("Expected a key or object end token", token, path))
   }
 
   override def default:Option[T] = parser.default

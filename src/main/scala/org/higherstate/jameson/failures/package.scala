@@ -27,4 +27,28 @@ package object failures {
     def apply[T](failures:NonEmptyList[ValidationFailure]):Valid[T] =
       scalaz.Failure(failures)
   }
+
+  implicit class ValidWrapper[T](val valid:Valid[T]) extends AnyVal {
+
+    def isInterrupt =
+      valid match {
+        case Failure(x) if x.last.isInstanceOf[TokenStreamInterrupt] => true
+        case _ => false
+      }
+
+    def combine[U,W](value: => Valid[U])(f:(T,U) => W):Valid[W] = {
+      if (isInterrupt) valid.asInstanceOf[Valid[W]]
+      else
+        (valid, value) match {
+          case (Success(x), Success(y)) =>
+            Success(f(x, y))
+          case (scalaz.Failure(x), scalaz.Failure(y)) =>
+            Failure(x.append(y))
+          case (scalaz.Failure(x), _) =>
+            Failure(x)
+          case (_, scalaz.Failure(y)) =>
+            Failure(y)
+        }
+    }
+  }
 }

@@ -10,7 +10,7 @@ case class OrElseParser[T](parser:Parser[T], _default:T) extends Parser[T] {
     tokenizer.head match {
       case NullToken | EndToken =>
         Success(_default)
-      case _                    =>
+      case _ =>
         parser.parse(tokenizer, path)
     }
 

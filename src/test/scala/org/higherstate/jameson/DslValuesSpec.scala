@@ -6,6 +6,7 @@ import org.higherstate.jameson.Dsl._
 import org.higherstate.jameson.failures._
 import java.util
 import org.scalatest.matchers.MustMatchers
+import scalaz.NonEmptyList
 
 class DslValuesSpec extends WordSpec with MustMatchers {
 
@@ -57,6 +58,15 @@ class DslValuesSpec extends WordSpec with MustMatchers {
     "fail if none in | for required key name" in {
       asMap(("a"|"b"|"c") -> "d" -> as[Int] is required).parse(json).isFailure mustEqual true
     }
+    "Captures multiple failures" in {
+      val t = asMap[Float].parse("""{"float1":4.5, "string":"hello", "float2":435.3, "boolean": false, "float3":443.3}""")
+      t match {
+        case Failure(l:NonEmptyList[_]) if l.size == 2 =>
+          assert(true)
+        case _ =>
+          assert(false)
+      }
+    }
   }
 
 
@@ -100,7 +110,12 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       asList[String].parse("""["one","two","three"]""") mustEqual Success(List("one", "two", "three"))
     }
     "Fail if an element doesnt match parser" in {
-      asList(as[Boolean]).parse("""[true, true, 3, false]""").isFailure mustEqual true
+      asList(as[Boolean]).parse("""[true, true, 3, false, "hello"]""") match {
+        case Failure(l:NonEmptyList[_]) if l.size == 2 =>
+          assert(true)
+        case _ =>
+          assert(false)
+      }
     }
     "Succeeds if empty list" in {
       asList[Any].parse("[]") mustEqual Success(Nil)

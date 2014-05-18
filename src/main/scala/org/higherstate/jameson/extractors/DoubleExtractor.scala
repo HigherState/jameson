@@ -6,9 +6,12 @@ import org.higherstate.jameson.failures._
 
 trait DoubleExtractor[T] extends Extractor[Double,  T] {
   def parse(tokenizer:Tokenizer, path: Path) = tokenizer.head match {
-    case DoubleToken(value) => apply(value, path)
-    case LongToken(value)   => apply(value, path)
-    case token              => Failure(InvalidTokenFailure(this, "Expected Double token", token, path))
+    case DoubleToken(value) =>
+      apply(value, path)
+    case LongToken(value)   =>
+      apply(value, path)
+    case token              =>
+      Failure(InvalidTokenFailure(this, "Expected Double token", token, path))
   }
 }
 
@@ -19,9 +22,12 @@ trait DoubleRangeExtractor[T] extends Extractor[Double, T] {
   def lessThanExclusive:Boolean
 
   def parse(tokenizer:Tokenizer, path: Path) = tokenizer.head match {
-    case DoubleToken(value) => applyRange(value, path)
-    case LongToken(value)   => applyRange(value, path)
-    case token              => Failure(InvalidTokenFailure(this, "Expected Double token", token, path))
+    case DoubleToken(value) =>
+      applyRange(value, path)
+    case LongToken(value)   =>
+      applyRange(value, path)
+    case token              =>
+      Failure(InvalidTokenFailure(this, "Expected Double token", token, path))
   }
 
   private def applyRange(value:Double, path:Path) =

@@ -13,7 +13,7 @@ case object UUIDParser extends Parser[UUID] {
       case StringToken(value) =>
         if (!uuidRegex.pattern.matcher(value).matches()) Failure(InvalidTokenFailure(this, "String is not a Universally Unique Identifier", tokenizer.head, path))
         else Success(UUID.fromString(value))
-      case token              => Failure(InvalidTokenFailure(this, "Expected String token", token, path))
+      case token => Failure(InvalidTokenFailure(this, "Expected String token", token, path))
     }
 
   def schema = Map("type" -> "string", "pattern" -> uuidRegex.toString)

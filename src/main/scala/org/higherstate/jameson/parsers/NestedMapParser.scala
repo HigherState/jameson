@@ -47,7 +47,7 @@ case class OpenMapParser(selectors:Map[String, KeySelector[String,_]], defaultPa
           toMap(tokenizer.moveNext(), path, hold + toKey).map { case (m, h) => (m + (toKey -> r), h) }
         }
       case token =>
-        Failure(InvalidTokenFailure(this, "Expected object end token or key token", token, path))
+        Failure(UnexpectedTokenFailure("Expected object end token or key token", token, path))
     }
 
   protected def toMap(tokenizer:Tokenizer, path: Path):Valid[Map[String, Any]] = tokenizer.head match {
@@ -59,7 +59,7 @@ case class OpenMapParser(selectors:Map[String, KeySelector[String,_]], defaultPa
         toMap(tokenizer.moveNext(), path).map(_ + (toKey -> r))
       }
     case token =>
-      Failure(InvalidTokenFailure(this, "Expected object end token or key token", token, path))
+      Failure(UnexpectedTokenFailure("Expected object end token or key token", token, path))
   }
 
   override def schema = super.schema + ("additionalProperties" -> true)
@@ -78,7 +78,7 @@ case class DropMapParser(selectors:Map[String, KeySelector[String,_]]) extends N
           }
         }
       case token =>
-        Failure(InvalidTokenFailure(this, "Expected object end token or key token", token, path))
+        Failure(UnexpectedTokenFailure("Expected object end token or key token", token, path))
     }
 
   protected def toMap(tokenizer:Tokenizer, path: Path):Valid[Map[String, Any]] =
@@ -92,7 +92,7 @@ case class DropMapParser(selectors:Map[String, KeySelector[String,_]]) extends N
           }
         }
       case token =>
-        Failure(InvalidTokenFailure(this, "Expected object end token or key token", token, path))
+        Failure(UnexpectedTokenFailure("Expected object end token or key token", token, path))
     }
 
   override def schema = super.schema + ("additionalProperties" -> true)
@@ -111,7 +111,7 @@ case class ClosedMapParser(selectors:Map[String, KeySelector[String,_]]) extends
           }
         }
       case token =>
-        Failure(InvalidTokenFailure(this, "Expected object end token or key token", token, path))
+        Failure(UnexpectedTokenFailure("Expected object end token or key token", token, path))
     }
 
   protected def toMap(tokenizer:Tokenizer, path: Path):Valid[Map[String, Any]] =
@@ -125,7 +125,7 @@ case class ClosedMapParser(selectors:Map[String, KeySelector[String,_]]) extends
           }
         }
       case token =>
-        Failure(InvalidTokenFailure(this, "Expected object end token or key token", token, path))
+        Failure(UnexpectedTokenFailure("Expected object end token or key token", token, path))
     }
 
   override def schema = super.schema + ("additionalProperties" -> false)

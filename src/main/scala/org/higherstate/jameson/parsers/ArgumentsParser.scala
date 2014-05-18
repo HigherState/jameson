@@ -12,39 +12,43 @@ trait ObjectArgumentsParser[+U] extends Parser[U] {
   protected def template:Array[Any]
   protected def groups:List[(Int, Parser[_], Set[String])]
 
-  protected def getArgs(tokenizer:Tokenizer, path:Path): Valid[Array[Any]] = tokenizer.head match {
-    case ObjectStartToken =>
-      val buffers = groups.map( b => ObjectBuffer(b._2) -> b._1)
-      val keyBuffers = buffers.zip(groups).flatMap(t => t._2._3.map(_ -> t._1._1)).toMap
-      val args = buildArgs(tokenizer.moveNext(), path, keyBuffers)
-      if (buffers.nonEmpty) buffers.foldLeft(args) { case (i, (buffer, index)) =>
-        i.flatMap(a => buffer.parse(path).map { v =>
-          a(index) = v
-          a
-        })
-      }
-      args.flatMap { args =>
-        if (!args.exists(_ == NoArgFound)) Success(args)
-        else Failure(ArgumentsNotFoundFailure(this, args.zipWithIndex.filter(_._1 == NoArgFound).flatMap(p => arguments.find(a => a._2._2 == p._2).map(_._1)).toList, path))
-      }
-    case token            => Failure(InvalidTokenFailure(this, "Expected object start token", token, path))
-  }
+  protected def getArgs(tokenizer:Tokenizer, path:Path): Valid[Array[Any]] =
+    tokenizer.head match {
+      case ObjectStartToken =>
+        val buffers = groups.map( b => ObjectBuffer(b._2) -> b._1)
+        val keyBuffers = buffers.zip(groups).flatMap(t => t._2._3.map(_ -> t._1._1)).toMap
+        val validArgs = buildArgs(tokenizer.moveNext(), path, keyBuffers)
+        if (buffers.nonEmpty) buffers.foldLeft(validArgs) { case (_validArgs, (buffer, index)) =>
+          _validArgs.combine(buffer.parse(path)){ (args, value) =>
+            args(index) = value
+            args
+          }
+        }
+        validArgs.flatMap { args =>
+          if (!args.exists(_ == NoArgFound)) Success(args)
+          else Failure(ArgumentsNotFoundFailure(this, args.zipWithIndex.filter(_._1 == NoArgFound).flatMap(p => arguments.find(a => a._2._2 == p._2).map(_._1)).toList, path))
+        }
+      case token =>
+        Failure(InvalidTokenFailure(this, "Expected object start token", token, path))
+    }
   //TODO: args not found in grouped object not coming through as correct error
 
   private def buildArgs(tokenizer:Tokenizer, path:Path, buffers:Map[String, ObjectBuffer]): Valid[Array[Any]] =
     tokenizer.head match {
       case KeyToken(key) =>
-        arguments.get(key)
-          .map(p => p._1.parse(tokenizer.moveNext(), path + key).flatMap { r =>
-          buildArgs(tokenizer.moveNext(), path, buffers).map { args =>
-            args(p._2) = r
-            args
-          }
-        })
+        arguments.get(key).map{ case (parser, index) =>
+          parser.parse(tokenizer.moveNext(), path + key)
+            .combine(buildArgs(tokenizer.moveNext(), path, buffers)){(value, args) =>
+              args(index) = value
+              args
+            }
+         }
           .orElse(buffers.get(key).map(b => buildArgs(b.add(tokenizer), path, buffers)))
           .getOrElse(buildArgs(tokenizer.dropNext(), path, buffers))
-      case ObjectEndToken => Success(template.clone())
-      case token          => Failure(InvalidTokenFailure(this, "Expected key or Object end token", token, path))
+      case ObjectEndToken =>
+        Success(template.clone())
+      case token =>
+        Failure(UnexpectedTokenFailure("Expected key or Object end token", token, path))
     }
 }
 
@@ -52,22 +56,25 @@ trait ListArgumentParser[U] extends Parser[U] {
   protected def parsers:List[Parser[_]]
 
   protected def getArgs(tokenizer:Tokenizer, path:Path) = tokenizer.head match {
-    case ArrayStartToken => buildArgs(parsers, 0, tokenizer.moveNext(), path)
-    case token           => Failure(InvalidTokenFailure(this, "Expected array start token", token, path))
+    case ArrayStartToken =>
+      buildArgs(parsers, 0, tokenizer.moveNext(), path)
+    case token =>
+      Failure(InvalidTokenFailure(this, "Expected array start token", token, path))
   }
 
-  private def buildArgs(p:List[Parser[_]], index:Int, tokenizer:Tokenizer, path:Path):Valid[List[Any]] = (tokenizer.head, p) match {
-    case (ArrayEndToken, Nil) =>
-      Success(Nil)
-    case (ArrayEndToken, head :: tail) if head.hasDefault =>
-      buildArgs(tail, index, tokenizer, path).map(head.default.get :: _)
-    case (ArrayEndToken, _) =>
-      Failure(InvalidTokenFailure(this, "Insufficient arguments for tuple", ArrayEndToken, path))
-    case (token, Nil) =>
-      Failure(InvalidTokenFailure(this, "Expected array end token", token, path + index))
-    case (_, head :: tail) =>
-      head.parse(tokenizer, path + index).flatMap(h => buildArgs(tail, index + 1, tokenizer.moveNext(), path).map(t => h :: t))
-  }
+  private def buildArgs(p:List[Parser[_]], index:Int, tokenizer:Tokenizer, path:Path):Valid[List[Any]] =
+    (tokenizer.head, p) match {
+      case (ArrayEndToken, Nil) =>
+        Success(Nil)
+      case (ArrayEndToken, head :: tail) if head.hasDefault =>
+        buildArgs(tail, index, tokenizer, path).map(head.default.get :: _)
+      case (ArrayEndToken, _) =>
+        Failure(InvalidTokenFailure(this, "Insufficient arguments for tuple", ArrayEndToken, path))
+      case (token, Nil) =>
+        Failure(UnexpectedTokenFailure("Expected array end token", token, path + index))
+      case (_, head :: tail) =>
+        head.parse(tokenizer, path + index).combine(buildArgs(tail, index + 1, tokenizer.moveNext(), path))(_ :: _)
+    }
 
   def schema =
     Map("type" -> "list", "items" -> parsers.map(_.schema), "additionalItems" -> false)

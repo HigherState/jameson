@@ -37,29 +37,30 @@ trait Tokenizer {
   }
 
   //leaves arrayEnd or object end token as head
-  def dropObjectOrArray():Tokenizer = this.head match {
-    case (token:BadToken) => this
-    case ArrayStartToken =>
-      this.moveNext()
-      while(head != ArrayEndToken) {
-        if (head.isInstanceOf[BadToken] || head == EndToken) return this;
-        drop()
-      }
-      this
-    case ObjectStartToken =>
-      this.moveNext()
-      while(head != ObjectEndToken) {
-        if (head.isInstanceOf[BadToken] || head == EndToken) return this;
-        moveNext().drop()
-      }
-      this
-    case ArrayEndToken =>
-      FailedTokenizer(BadToken(UnexpectedTokenFailure("Unexpected token", ArrayEndToken, NoPath)))
-    case ObjectEndToken =>
-      FailedTokenizer(BadToken(UnexpectedTokenFailure("Unexpected token", ObjectEndToken, NoPath)))
-    case token =>
-      this
-  }
+  def dropObjectOrArray():Tokenizer =
+    this.head match {
+      case (token:BadToken) => this
+      case ArrayStartToken =>
+        this.moveNext()
+        while(head != ArrayEndToken) {
+          if (head.isInstanceOf[BadToken] || head == EndToken) return this
+          drop()
+        }
+        this
+      case ObjectStartToken =>
+        this.moveNext()
+        while(head != ObjectEndToken) {
+          if (head.isInstanceOf[BadToken] || head == EndToken) return this
+          moveNext().drop()
+        }
+        this
+      case ArrayEndToken =>
+        FailedTokenizer(BadToken(UnexpectedTokenFailure("Unexpected token", ArrayEndToken, NoPath)))
+      case ObjectEndToken =>
+        FailedTokenizer(BadToken(UnexpectedTokenFailure("Unexpected token", ObjectEndToken, NoPath)))
+      case token =>
+        this
+    }
 }
 
 case class FailedTokenizer(head:BadToken) extends Tokenizer {

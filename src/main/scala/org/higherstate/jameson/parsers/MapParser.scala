@@ -8,8 +8,10 @@ case class MapParser[T](parser:Parser[T]) extends Parser[Map[String,T]] {
 
   def parse(tokenizer:Tokenizer, path: Path): Valid[Map[String, T]] =
     tokenizer.head match {
-      case ObjectStartToken => toMap(tokenizer.moveNext(), path)
-      case token            => Failure(InvalidTokenFailure(this, "Expected object start token", token, path))
+      case ObjectStartToken =>
+        toMap(tokenizer.moveNext(), path)
+      case token =>
+        Failure(InvalidTokenFailure(this, "Expected object start token", token, path))
     }
 
   protected def toMap(tokenizer:Tokenizer, path:Path):Valid[Map[String, T]] =
@@ -17,9 +19,9 @@ case class MapParser[T](parser:Parser[T]) extends Parser[Map[String,T]] {
       case ObjectEndToken =>
         Success(Map.empty[String, T])
       case KeyToken(key)  =>
-        parser.parse(tokenizer.moveNext(), path + key).flatMap(r => toMap(tokenizer.moveNext(), path).map(_ + (key -> r)))
+        parser.parse(tokenizer.moveNext(), path + key).combine(toMap(tokenizer.moveNext(), path))((x, y) => y + (key -> x))
       case token          =>
-        Failure(InvalidTokenFailure(this, "Expected object end token or key token", token, path))
+        Failure(UnexpectedTokenFailure("Expected object end token or key token", token, path))
     }
 
   override def default:Option[Map[String,T]] = Some(Map.empty)

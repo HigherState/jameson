@@ -10,10 +10,10 @@ import scala.util.Try
 
 case class ClassParser[+T:TypeTag](selectors:List[KeySelector[String,_]], registry:Registry) extends ObjectArgumentsParser[T] {
 
-  def getClassName = typeOf[T].typeSymbol.asType.name.toString
-
   private val constr = typeOf[T].typeSymbol.typeSignature.members.filter(_.isMethod).map(_.asMethod).filter(_.isConstructor).head
   protected lazy val (arguments, groups, template) = getArgumentsAndGroups
+
+  def getClassName = typeOf[T].typeSymbol.asType.name.toString
 
   def parse(tokenizer:Tokenizer, path: Path): Valid[T] =
     getArgs(tokenizer, path).flatMap { args =>

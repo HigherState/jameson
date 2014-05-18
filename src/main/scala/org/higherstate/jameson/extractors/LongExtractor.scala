@@ -6,8 +6,10 @@ import org.higherstate.jameson.failures._
 
 trait LongExtractor[T] extends Extractor[Long,  T] {
   def parse(tokenizer:Tokenizer, path: Path) = tokenizer.head match {
-    case LongToken(value) => apply(value, path)
-    case token            => Failure(InvalidTokenFailure(this, "Expected Long token", token, path))
+    case LongToken(value) =>
+      apply(value, path)
+    case token            =>
+      Failure(InvalidTokenFailure(this, "Expected Long token", token, path))
   }
 }
 

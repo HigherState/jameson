@@ -9,7 +9,7 @@ as well as the ability to pipe values into a function.
 Jameson can deserialize into case classes and nested case classes. It is fully designed to support 
 custom extension.
 
-Jameson parse returns a scalaz.validation object.  It current stops parsing on the first failure.
+Jameson parse returns a scalaz.validation object.  It will attempt to collect failures where ever possible.
 
 Jameson's DSL supports validation on any nested value as well as conditional deserialization 
 and validation depending on key value matches. Jameson also supports key substitution.
@@ -321,6 +321,7 @@ Will parse a json array into a TraversableOnce collection object. Each element i
 parsed until called.
 
 ```scala
+
 //parse an array of objects
 val streamParser = asStream [SimpleClass]
 streamParser("""[{"string":"one","int":1},{"string":"two","int":2},{"string":"three","int":3}]""")
@@ -440,6 +441,24 @@ The parser can also be constructed such that any properties not specified will c
 ```scala
 val mapParser = asRestrictedMap("name" -> as[String], "scores" -> asList[Int])
 val dynParser = asRestrictedDynamic("name" -> as[String], "scores" -> asList[Int])
+```
+
+####Registry
+
+Instead of importing the default registry in Jameson, you can est your own implicit registry.  
+You can register new custom parsers against a type class. This parser will always be used when parsing that value.  Furthermore you can override the default value parsers (these are the parsers used to parse Any).
+
+```scala
+
+object MyCustomRegistry extends CustomRegistry {
+    bindParser[MyClass] = as[MyClass]("age" -> as[Int] >= 0 < 25)
+    
+    overrideDefaultTextParser(as [String] map {
+        case AsDate(date) => date
+        case s => s
+    })
+}
+
 ```
 
 
