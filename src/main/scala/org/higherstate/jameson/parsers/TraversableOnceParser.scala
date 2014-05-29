@@ -15,16 +15,16 @@ case class TraversableOnceParser[T](parser:Parser[T]) extends Parser[Traversable
 
   private case class IteratorWrapper[+U](tokenizer:Tokenizer, parser:Parser[U], path:Path) extends Iterator[Valid[U]] {
     var index = -1
-    var failed = false
+    var interrupt = false
 
-    def hasNext = !failed && {
+    def hasNext = !interrupt && {
       index += 1
       val next = tokenizer.moveNext().head
       next != ArrayEndToken && next != EndToken
     }
     def next() = {
       val r = parser.parse(tokenizer, path + index)
-      if (r.isFailure) failed = true
+      if (r.isInterrupt) interrupt = true
       r
     }
   }

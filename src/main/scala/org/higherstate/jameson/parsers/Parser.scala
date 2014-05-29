@@ -21,6 +21,11 @@ trait Parser[+U] {
   def parse(list:java.lang.Iterable[Any]):Valid[U] =
     parse(JavaTokenizer(list), Path)
 
+  def parse(map:Map[String,Any]):Valid[U] =
+    parse(ScalaTokenizer(map), Path)
+  def parse(list:Seq[Any]):Valid[U] =
+    parse(ScalaTokenizer(list), Path)
+
   def apply(jsonString:String):Valid[U] =
     parse(jsonString:String)
   def apply(inputStream:InputStream):Valid[U] =
