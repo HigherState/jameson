@@ -2,7 +2,7 @@ package org.higherstate.jameson.tokenizers
 
 import org.higherstate.jameson.failures.UnexpectedValueFailure
 import org.higherstate.jameson.NoPath
-import org.higherstate.jameson.tokenizers.JavaTokenizer._
+import org.higherstate.jameson.tokenizers.ScalaTokenizer._
 
 
 object ScalaTokenizer {
