@@ -13,7 +13,7 @@ case class KeyMatcher[U](matchParsers:Seq[(String, Parser[U])]) extends Parser[U
         getKeys(buffer.getTokenizer.moveNext(), path).flatMap { keys =>
           matchParsers
             .find(p => keys.contains(p._1))
-            .fold[Valid[U]](Failure(KeyMatchNotFoundFailure(this, path)))(_._2.parse(buffer.getTokenizer, path))
+            .fold[Valid[U]](Failure(KeyMatchNotFoundFailure(this, path, keys)))(_._2.parse(buffer.getTokenizer, path))
         }
       }
       case token =>
