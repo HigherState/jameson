@@ -6,7 +6,6 @@ import reflect.runtime.universe._
 import org.higherstate.jameson.tokenizers.Tokenizer
 import scala.reflect.ClassTag
 import scala.util.matching.Regex
-import org.omg.CORBA.DynAny
 
 object Dsl {
 
@@ -322,6 +321,11 @@ object Dsl {
       PartialParser(key, registry[T], None, func)
     def apply[T, U](key:String, default:T)(func:PartialFunction[T, Parser[U]])(implicit registry:Registry, typeTag:TypeTag[T]) =
       PartialParser(key, registry[T], Some(default), func)
+  }
+
+  object maybeMatchAs {
+    def apply[T](matches:Selector[String, T]*) =
+      MaybeKeyMatcher(matches.flatMap(s => s.keys.map((_, s.parser))))
   }
 
   object fold {
