@@ -5,9 +5,9 @@ import scalaz.{NonEmptyList, ValidationNel}
 package object failures {
   type Valid[T] = ValidationNel[ValidationFailure, T]
 
-  type Failure[T] = scalaz.Failure[ValidationFailure, T]
+  type Failure[T] = scalaz.Failure[ValidationFailure]
 
-  type Success[T] = scalaz.Success[ValidationFailure, T]
+  type Success[T] = scalaz.Success[T]
 
   object Success {
     def unapply[T](v:Valid[T]) =
