@@ -1,6 +1,6 @@
 name := "Jameson"
 
-organization := "org.highState"
+organization := "org.higherstate"
 
 version := "1.1.6"
 
