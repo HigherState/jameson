@@ -35,10 +35,10 @@ case class ClassParser[+T:TypeTag](selectors:List[KeySelector[String,_]], regist
           templateBuffer += NoArgFound(s.parser)
           val parser = if (s.isParserSpecified) s.parser else getUnspecifiedParser(typeSymbol)
           if (s.isGroup) groupBuffer += ((i, parser, s.keys))
-          else argsBuffer ++= s.keys.map(_ -> (parser, i))
+          else argsBuffer ++= s.keys.map(_ -> (parser -> i))
         }.getOrElse {
           val parser = getUnspecifiedParser(typeSymbol)
-          argsBuffer += name -> (parser, i)
+          argsBuffer += name -> (parser -> i)
           templateBuffer += NoArgFound(parser)
         }
       }

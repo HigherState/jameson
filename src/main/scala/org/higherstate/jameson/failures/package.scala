@@ -1,9 +1,9 @@
 package org.higherstate.jameson
 
-import scalaz.{NonEmptyList, ValidationNel}
+import scalaz.{\/, NonEmptyList}
 
 package object failures {
-  type Valid[T] = ValidationNel[ValidationFailure, T]
+  type Valid[T] = NonEmptyList[ValidationFailure] \/ T
 
   type Failure[T] = scalaz.Failure[ValidationFailure]
 
@@ -14,7 +14,7 @@ package object failures {
       v.toOption
 
     def apply[T](value:T):Valid[T] =
-      scalaz.Success(value)
+      scalaz.\/-(value)
   }
 
   object Failure {
@@ -22,10 +22,10 @@ package object failures {
       v.swap.toOption
 
     def apply[T](failure:ValidationFailure):Valid[T] =
-      scalaz.Failure(NonEmptyList(failure))
+      scalaz.-\/(NonEmptyList(failure))
 
     def apply[T](failures:NonEmptyList[ValidationFailure]):Valid[T] =
-      scalaz.Failure(failures)
+      scalaz.-\/(failures)
   }
 
   implicit class ValidWrapper[T](val valid:Valid[T]) extends AnyVal {
@@ -42,11 +42,11 @@ package object failures {
         (valid, value) match {
           case (Success(x), Success(y)) =>
             Success(f(x, y))
-          case (scalaz.Failure(x), scalaz.Failure(y)) =>
+          case (scalaz.-\/(x), scalaz.-\/(y)) =>
             Failure(x.append(y))
-          case (scalaz.Failure(x), _) =>
+          case (scalaz.-\/(x), _) =>
             Failure(x)
-          case (_, scalaz.Failure(y)) =>
+          case (_, scalaz.-\/(y)) =>
             Failure(y)
         }
     }

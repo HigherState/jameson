@@ -1,7 +1,6 @@
 package org.higherstate.jameson.tokenizers
 
-import org.scalatest.WordSpec
-import org.scalatest.matchers.MustMatchers
+import org.scalatest.{MustMatchers, WordSpec}
 import scala.collection.mutable.ListBuffer
 import org.higherstate.jameson._
 import JavaTokenizerSpec._

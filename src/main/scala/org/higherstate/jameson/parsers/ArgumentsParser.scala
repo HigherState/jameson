@@ -25,7 +25,7 @@ trait ObjectArgumentsParser[+U] extends Parser[U] {
           }
         }
         validArgs.flatMap { args =>
-          if (!args.exists(_ == NoArgFound)) Success(args)
+          if (!args.contains(NoArgFound)) Success(args)
           else Failure(ArgumentsNotFoundFailure(this, args.zipWithIndex.filter(_._1 == NoArgFound).flatMap(p => arguments.find(a => a._2._2 == p._2).map(_._1)).toList, path))
         }
       case token =>

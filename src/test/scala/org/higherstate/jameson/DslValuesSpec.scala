@@ -1,11 +1,10 @@
 package org.higherstate.jameson
 
-import org.scalatest.WordSpec
+import org.scalatest.{MustMatchers, WordSpec}
 import org.higherstate.jameson.DefaultRegistry._
 import org.higherstate.jameson.Dsl._
 import org.higherstate.jameson.failures._
 import java.util
-import org.scalatest.matchers.MustMatchers
 import scalaz.NonEmptyList
 
 class DslValuesSpec extends WordSpec with MustMatchers {
@@ -17,25 +16,25 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       asMap[Any].parse(json) mustEqual (Success(map))
     }
     "not parse a json list" in {
-      asMap[Any].parse("[1,2,3]").isFailure mustEqual true
+      asMap[Any].parse("[1,2,3]").isLeft mustEqual true
     }
     "support explicit key parsers" in {
       asMap("tInt" -> as[Int], "tList" -> asList[Any]).parse(json) mustEqual Success(map)
     }
     "fail if explicit key parser not valid" in {
-      asMap("tInt" -> as[Boolean]).parse(json).isFailure mustEqual true
+      asMap("tInt" -> as[Boolean]).parse(json).isLeft mustEqual true
     }
     "support required key parsers" in {
       asMap("tInt" -> as[Int], "tBool" -> as[Boolean] is required, "tList" -> asList[Any]).parse(json) mustEqual Success(map)
     }
     "fail if required key value not found" in {
-      asMap("tFloat" -> as[Float] is required).parse(json).isFailure mustEqual true
+      asMap("tFloat" -> as[Float] is required).parse(json).isLeft mustEqual true
     }
     "not fail if not required key value is not found" in {
-      asMap("tFloat" -> as[Float]).parse(json).isSuccess mustEqual true
+      asMap("tFloat" -> as[Float]).parse(json).isRight mustEqual true
     }
     "fail on invalid json" in {
-      asMap[Any].parse("""{"tInt3":3,}""").isFailure mustEqual true
+      asMap[Any].parse("""{"tInt3":3,}""").isLeft mustEqual true
     }
     "supports key renaming" in {
       asMap("tInt" -> "nInt" -> as[Int]).parse(json) mustEqual Success(map - "tInt" + ("nInt" -> 3))
@@ -56,7 +55,7 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       asMap(("tint"|"tInt"|"TInt") -> "tInt" -> as[Int]).parse(json) mustEqual Success(map)
     }
     "fail if none in | for required key name" in {
-      asMap(("a"|"b"|"c") -> "d" -> as[Int] is required).parse(json).isFailure mustEqual true
+      asMap(("a"|"b"|"c") -> "d" -> as[Int] is required).parse(json).isLeft mustEqual true
     }
     "Captures multiple failures" in {
       val t = asMap[Float].parse("""{"float1":4.5, "string":"hello", "float2":435.3, "boolean": false, "float3":443.3}""")
@@ -80,13 +79,13 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       (asMap("tInt" -> as[Int], "tMap" -> asMap[Any], "tList" -> asList [Any]) is excludekeys).parse(json) mustEqual Success(map - "tBool")
     }
     "not parse a json list" in {
-      (asMap("tList" -> asList[Any]) is excludekeys).parse("[1,2,3]").isFailure mustEqual true
+      (asMap("tList" -> asList[Any]) is excludekeys).parse("[1,2,3]").isLeft mustEqual true
     }
     "fail if required key value not found" in {
-      (asMap("tInt" -> as[Int], "tBool" -> as[Boolean], "tFloat" -> as[Float] is required) is excludekeys).parse(json).isFailure mustEqual true
+      (asMap("tInt" -> as[Int], "tBool" -> as[Boolean], "tFloat" -> as[Float] is required) is excludekeys).parse(json).isLeft mustEqual true
     }
     "not fail if not required key value is not found" in {
-      (asMap("tInt" -> as[Int], "tBool" -> as[Boolean], "tFloat" -> as[Float]) is excludekeys).parse(json).isSuccess mustEqual true
+      (asMap("tInt" -> as[Int], "tBool" -> as[Boolean], "tFloat" -> as[Float]) is excludekeys).parse(json).isRight mustEqual true
     }
     "supports key renaming" in {
       (asMap("tInt" -> "nInt" -> as[Int]) is excludekeys).parse(json) mustEqual Success(Map("nInt" -> 3))
@@ -121,7 +120,7 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       asList[Any].parse("[]") mustEqual Success(Nil)
     }
     "Fails if json is object" in {
-      asList[Any].parse("""{"key":"value"}""").isFailure mustEqual true
+      asList[Any].parse("""{"key":"value"}""").isLeft mustEqual true
     }
   }
 
@@ -231,7 +230,7 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       asTuple[Int, String].parse("[567,\"test\"]") mustEqual Success((567,"test"))
     }
     "Succeed with nested 2 tuple" in {
-      asTuple(asMap[Any], asList[Any]).parse("""[{"key":"value"},[1,2,3,4]]""") mustEqual Success(Map(("key","value")), List(1,2,3,4))
+      asTuple(asMap[Any], asList[Any]).parse("""[{"key":"value"},[1,2,3,4]]""") mustEqual Success(Map(("key","value")) -> List(1,2,3,4))
     }
     "Succeed with simple 3 tuple" in {
       asTuple[Int, String, Boolean].parse("[567,\"test\", true]") mustEqual Success((567,"test", true))
@@ -319,20 +318,20 @@ class DslValuesSpec extends WordSpec with MustMatchers {
   "length validation" should {
     "handle strings" in {
       (as [String] maxlength 4 minlength 2).parse("\"text\"") mustEqual Success("text")
-      (as [String] maxlength 4 minlength 2).parse("\"t\"").isFailure mustEqual(true)
-      (as [String] maxlength 4 minlength 2).parse("\"texts\"").isFailure mustEqual(true)
+      (as [String] maxlength 4 minlength 2).parse("\"t\"").isLeft mustEqual(true)
+      (as [String] maxlength 4 minlength 2).parse("\"texts\"").isLeft mustEqual(true)
     }
     "handle lists" in {
       (asList[Any] maxlength 4 minlength 2).parse("[1,2,3,4]") mustEqual Success(List(1,2,3,4))
-      (asList[Any] maxlength 4 minlength 2).parse("[2]").isFailure mustEqual(true)
-      (asList[Any] maxlength 4 minlength 2).parse("[1,2,3,4,5,6]").isFailure mustEqual(true)
+      (asList[Any] maxlength 4 minlength 2).parse("[2]").isLeft mustEqual(true)
+      (asList[Any] maxlength 4 minlength 2).parse("[1,2,3,4,5,6]").isLeft mustEqual(true)
     }
   }
 
   "e-mail validation" should {
     "handle correct email address" in {
       (as [String] is email).parse("\"test@test.com\"") mustEqual Success("test@test.com")
-      (as [String] is email).parse("\"test\"").isFailure mustEqual (true)
+      (as [String] is email).parse("\"test\"").isLeft mustEqual (true)
     }
   }
 
@@ -359,8 +358,8 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       s.parse("""{}""") mustEqual Success(None)
       s.parse("""{"key2":{}}""") mustEqual Success(None)
       s.parse("""{"key":{}}""") mustEqual Success(None)
-      s.parse("""{"key":null}""").isFailure mustEqual true
-      s.parse("""{"key":45}""").isFailure mustEqual true
+      s.parse("""{"key":null}""").isLeft mustEqual true
+      s.parse("""{"key":45}""").isLeft mustEqual true
       s.parse("""{"key":{"key":null}}""") mustEqual Success(None)
     }
 
@@ -415,8 +414,8 @@ class DslValuesSpec extends WordSpec with MustMatchers {
       convertStringParser.parse("4536.00") mustEqual Success(4536)
       convertStringParser.parse("\"4536\"") mustEqual Success(4536)
       convertStringParser.parse("true") mustEqual Success(1)
-      convertStringParser.parse("4536.232").isFailure mustEqual true
-      convertStringParser.parse("\"4536.232\"").isFailure mustEqual true
+      convertStringParser.parse("4536.232").isLeft mustEqual true
+      convertStringParser.parse("\"4536.232\"").isLeft mustEqual true
     }
   }
 }

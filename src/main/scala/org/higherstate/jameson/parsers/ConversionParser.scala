@@ -10,7 +10,7 @@ case class ConversionParser[T](implicit typeTag:TypeTag[T]) extends Parser[T] {
   import ConversionParser._
 
   def parse(tokenizer: Tokenizer, path: Path): Valid[T] =
-    parser(tokenizer.head, path).map(_.asInstanceOf[T])
+    parser(tokenizer.head -> path).map(_.asInstanceOf[T])
 
 
   private val parser:Function[(Token, Path),Valid[_]] = {

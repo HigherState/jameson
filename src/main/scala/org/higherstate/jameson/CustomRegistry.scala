@@ -26,18 +26,18 @@ trait CustomRegistry extends Registry {
   private var _defaultDateTimeZone = DefaultRegistry.dateTimeZone
   private var _defaultDateTimeFormatter = DefaultRegistry.dateTimeFormatter
 
-  protected def overrideDefaultUnknownParser(parser:Parser[_]) { _defaultUnknownParser = parser }
-  protected def overrideDefaultTextParser(parser:Parser[_]) { _defaultTextParser = parser }
-  protected def overrideDefaultLongParser(parser:Parser[_]) { _defaultLongParser = parser }
-  protected def overrideDefaultDoubleParser(parser:Parser[_]) { _defaultDoubleParser = parser}
-  protected def overrideDefaultBooleanParser(parser:Parser[_]) { _defaultBooleanParser = parser}
-  protected def overrideDefaultArrayParser(parser:Parser[_]) { _defaultArrayParser = parser}
-  protected def overrideDefaultObjectParser(parser:Parser[_]) { _defaultObjectParser = parser}
-  protected def overrideDefaultNullParser(parser:Parser[_]) { _defaultNullParser = parser}
-  protected def overrideDefaultAnyRefParser(parser:Parser[_]) { _defaultAnyRefParser = parser}
+  protected def overrideDefaultUnknownParser(parser:Parser[_]):Unit = { _defaultUnknownParser = parser }
+  protected def overrideDefaultTextParser(parser:Parser[_]):Unit =  { _defaultTextParser = parser }
+  protected def overrideDefaultLongParser(parser:Parser[_]):Unit =  { _defaultLongParser = parser }
+  protected def overrideDefaultDoubleParser(parser:Parser[_]):Unit =  { _defaultDoubleParser = parser}
+  protected def overrideDefaultBooleanParser(parser:Parser[_]):Unit =  { _defaultBooleanParser = parser}
+  protected def overrideDefaultArrayParser(parser:Parser[_]):Unit =  { _defaultArrayParser = parser}
+  protected def overrideDefaultObjectParser(parser:Parser[_]):Unit =  { _defaultObjectParser = parser}
+  protected def overrideDefaultNullParser(parser:Parser[_]):Unit =  { _defaultNullParser = parser}
+  protected def overrideDefaultAnyRefParser(parser:Parser[_]):Unit =  { _defaultAnyRefParser = parser}
 
-  protected def overrideDefaultDateTimeZone(dateTimeZone:DateTimeZone) { _defaultDateTimeZone = dateTimeZone}
-  protected def overrideDefaultDateTimeFormatter(dateTimeFormatter:DateTimeFormatter) { _defaultDateTimeFormatter = Some(dateTimeFormatter)}
+  protected def overrideDefaultDateTimeZone(dateTimeZone:DateTimeZone):Unit =  { _defaultDateTimeZone = dateTimeZone}
+  protected def overrideDefaultDateTimeFormatter(dateTimeFormatter:DateTimeFormatter):Unit = { _defaultDateTimeFormatter = Some(dateTimeFormatter)}
 
   def defaultUnknownParser:Parser[_] = _defaultUnknownParser
   def defaultTextParser:Parser[_] = _defaultTextParser
@@ -49,7 +49,7 @@ trait CustomRegistry extends Registry {
   def defaultNullParser:Parser[_] = _defaultNullParser
   def defaultAnyRefParser:Parser[_] = _defaultAnyRefParser
 
-  protected def bindParser[T:TypeTag](parser:Parser[_]) {
+  protected def bindParser[T:TypeTag](parser:Parser[_]):Unit = {
     _defaultClassParser += typeOf[T].typeSymbol.asType -> parser
   }
 

@@ -17,7 +17,7 @@ object ScalaTokenizer {
     case l:Long       => Left(LongToken(l))
     case s:String     => Left(StringToken(s))
     case b:Boolean    => Left(BooleanToken(b))
-    case m:Map[String, Any] =>
+    case m:Map[String, Any]@unchecked =>
       Right(ScalaObjectTokenizer(m.toIterator))
     case a:Seq[Any] =>
       Right(ScalaArrayTokenizer(a.toIterator))

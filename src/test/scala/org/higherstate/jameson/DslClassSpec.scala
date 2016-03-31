@@ -3,8 +3,7 @@ package org.higherstate.jameson
 import org.higherstate.jameson.DefaultRegistry._
 import org.higherstate.jameson.Dsl._
 import org.higherstate.jameson.failures._
-import org.scalatest.WordSpec
-import org.scalatest.matchers.MustMatchers
+import org.scalatest.{MustMatchers, WordSpec}
 
 class DslClassSpec extends WordSpec with MustMatchers  {
 
@@ -108,9 +107,9 @@ class DslClassSpec extends WordSpec with MustMatchers  {
       as[ChildByte]("tByte" -> as [Byte] <= 4).parser("""{"tByte":4}""") mustEqual (Success(ChildByte(4)))
     }
     "handle failures" in {
-      as[Child1]("tInt" -> as [Int] > 3 <= 1000).parse("""{"tInt":3}""").isFailure mustEqual (true)
-      as[Child1]("tInt" -> as [Int] > 3 <= 1000).parse("""{"tInt":1025}""").isFailure mustEqual (true)
-      as[ChildDouble]("tDouble" -> as [Double] > -30).parse("""{"tDouble":-35}""").isFailure mustEqual (true)
+      as[Child1]("tInt" -> as [Int] > 3 <= 1000).parse("""{"tInt":3}""").isLeft mustEqual (true)
+      as[Child1]("tInt" -> as [Int] > 3 <= 1000).parse("""{"tInt":1025}""").isLeft mustEqual (true)
+      as[ChildDouble]("tDouble" -> as [Double] > -30).parse("""{"tDouble":-35}""").isLeft mustEqual (true)
     }
   }
 

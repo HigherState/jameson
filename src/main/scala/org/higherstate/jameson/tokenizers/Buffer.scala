@@ -8,7 +8,7 @@ private case class BaseBuffer(tokenizer:Tokenizer) extends Buffer {
   private val bufferHead = BufferToken(tokenizer.head)
   private var last = bufferHead
 
-  def moveNext() {
+  def moveNext():Unit = {
     tokenizer.moveNext()
     last = tokenizer.head :: last
   }
@@ -24,7 +24,7 @@ private case class NestedBuffer(tokenizer:BufferingTokenizer, bufferHead:BufferT
 }
 
 private trait BufferingTokenizer extends Tokenizer {
-  def reset(_bufferToken:BufferToken)
+  def reset(_bufferToken:BufferToken):Unit
   def bufferToken:BufferToken
 }
 
@@ -37,7 +37,7 @@ private case class NestedBufferingTokenizer(tokenizer:BufferingTokenizer) extend
   }
   override def getBuffer = NestedBuffer(this, bufferToken)
 
-  def reset(_bufferToken:BufferToken) {
+  def reset(_bufferToken:BufferToken):Unit = {
     tokenizer.reset(_bufferToken)
   }
 
@@ -56,7 +56,7 @@ private case class BaseBufferingTokenizer(baseBuffer:BaseBuffer, var bufferToken
   }
   override def getBuffer = NestedBuffer(this, bufferToken)
 
-  def reset(_bufferToken:BufferToken) {
+  def reset(_bufferToken:BufferToken):Unit = {
     bufferToken = _bufferToken
   }
 }
