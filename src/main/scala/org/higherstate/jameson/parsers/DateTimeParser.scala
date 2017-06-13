@@ -7,7 +7,7 @@ import org.higherstate.jameson.failures._
 import org.joda.time.format.DateTimeFormatter
 import scala.util.Try
 
-case class DateTimeParser(implicit val dateTimeFormatter:Option[DateTimeFormatter], val dateTimeZone:DateTimeZone) extends Parser[DateTime]{
+case class DateTimeParser()(implicit val dateTimeFormatter:Option[DateTimeFormatter], val dateTimeZone:DateTimeZone) extends Parser[DateTime]{
   def parse(tokenizer:Tokenizer, path: Path) = tokenizer.head match {
     case StringToken(value) =>
       Try{

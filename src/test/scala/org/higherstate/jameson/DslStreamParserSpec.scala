@@ -15,7 +15,7 @@ class DslStreamParserSpec extends WordSpec with MustMatchers {
       asStream(as[Boolean]).parse("""[true, true, 3, false]""").foreach{ s =>
         val r = s.toList
         r(2).isLeft mustEqual true
-        r must have size (3)
+        r must have size (4)
       }
 
     }

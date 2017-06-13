@@ -6,7 +6,7 @@ import org.higherstate.jameson.Path
 import org.higherstate.jameson.failures._
 import java.text.NumberFormat
 
-case class ConversionParser[T](implicit typeTag:TypeTag[T]) extends Parser[T] {
+case class ConversionParser[T]()(implicit typeTag:TypeTag[T]) extends Parser[T] {
   import ConversionParser._
 
   def parse(tokenizer: Tokenizer, path: Path): Valid[T] =

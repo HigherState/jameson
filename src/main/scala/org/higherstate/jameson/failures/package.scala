@@ -1,20 +1,21 @@
 package org.higherstate.jameson
 
-import scalaz.{\/, NonEmptyList}
+import cats.data.NonEmptyList
+
 
 package object failures {
-  type Valid[T] = NonEmptyList[ValidationFailure] \/ T
+  type Valid[+T] = NonEmptyList[ValidationFailure] Either T
 
-  type Failure[T] = scalaz.Failure[ValidationFailure]
+  type Failure[+T] = Right[ValidationFailure, T]
 
-  type Success[T] = scalaz.Success[T]
+  type Success[+T] = Left[ValidationFailure, T]
 
   object Success {
     def unapply[T](v:Valid[T]) =
       v.toOption
 
     def apply[T](value:T):Valid[T] =
-      scalaz.\/-(value)
+      Right(value)
   }
 
   object Failure {
@@ -22,17 +23,18 @@ package object failures {
       v.swap.toOption
 
     def apply[T](failure:ValidationFailure):Valid[T] =
-      scalaz.-\/(NonEmptyList(failure))
+      Left(NonEmptyList(failure, Nil))
 
     def apply[T](failures:NonEmptyList[ValidationFailure]):Valid[T] =
-      scalaz.-\/(failures)
+      Left(failures)
   }
+
 
   implicit class ValidWrapper[T](val valid:Valid[T]) extends AnyVal {
 
     def isInterrupt =
       valid match {
-        case Failure(x) if x.last.isInstanceOf[TokenStreamInterrupt] => true
+        case Failure(x) if x.toList.last.isInstanceOf[TokenStreamInterrupt] => true
         case _ => false
       }
 
@@ -42,11 +44,11 @@ package object failures {
         (valid, value) match {
           case (Success(x), Success(y)) =>
             Success(f(x, y))
-          case (scalaz.-\/(x), scalaz.-\/(y)) =>
-            Failure(x.append(y))
-          case (scalaz.-\/(x), _) =>
+          case (Left(x), Left(y)) =>
+            Failure(x ++ y.toList)
+          case (Left(x), _) =>
             Failure(x)
-          case (_, scalaz.-\/(y)) =>
+          case (_, Left(y)) =>
             Failure(y)
         }
     }

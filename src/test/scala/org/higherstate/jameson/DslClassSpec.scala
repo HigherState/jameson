@@ -77,9 +77,11 @@ class DslClassSpec extends WordSpec with MustMatchers  {
   }
 
   "parse as object" should {
-    val classParser = matchAs("animalType", "dog" -> as[Canine], "cat" -> as[Feline])
-    val pet:Valid[Object] = classParser("""{"animalType":"dog","name":"rufus","age":3}""")
-    pet mustEqual Success(Canine("dog", "rufus", 3))
+    "convert json string" in {
+      val classParser = matchAs("animalType", "dog" -> as[Canine], "cat" -> as[Feline])
+      val pet: Valid[Object] = classParser("""{"animalType":"dog","name":"rufus","age":3}""")
+      pet mustEqual Success(Canine("dog", "rufus", 3))
+    }
   }
 
   "parse with extracting key groups" should {

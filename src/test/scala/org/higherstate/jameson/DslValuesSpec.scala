@@ -5,7 +5,8 @@ import org.higherstate.jameson.DefaultRegistry._
 import org.higherstate.jameson.Dsl._
 import org.higherstate.jameson.failures._
 import java.util
-import scalaz.NonEmptyList
+
+import cats.data.NonEmptyList
 
 class DslValuesSpec extends WordSpec with MustMatchers {
 
@@ -60,7 +61,7 @@ class DslValuesSpec extends WordSpec with MustMatchers {
     "Captures multiple failures" in {
       val t = asMap[Float].parse("""{"float1":4.5, "string":"hello", "float2":435.3, "boolean": false, "float3":443.3}""")
       t match {
-        case Failure(l:NonEmptyList[_]) if l.size == 2 =>
+        case Failure(l:NonEmptyList[_]) if l.toList.size == 2 =>
           assert(true)
         case _ =>
           assert(false)
@@ -110,7 +111,7 @@ class DslValuesSpec extends WordSpec with MustMatchers {
     }
     "Fail if an element doesnt match parser" in {
       asList(as[Boolean]).parse("""[true, true, 3, false, "hello"]""") match {
-        case Failure(l:NonEmptyList[_]) if l.size == 2 =>
+        case Failure(l:NonEmptyList[_]) if l.toList.size == 2 =>
           assert(true)
         case _ =>
           assert(false)

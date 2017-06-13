@@ -22,7 +22,7 @@ case class FoldParser[T, U](parser:Parser[T], initial:U, func:(U,T) => U) extend
         case Failure(f) =>  //collect any other failures
           ListParser(parser).parse(tokenizer.moveNext(), path) match {
             case Failure(f2) =>
-              Failure(f.append(f2))
+              Failure(f ++ f2.toList)
             case _ =>
               Failure(f)
           }
