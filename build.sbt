@@ -2,9 +2,9 @@ name := "Jameson"
 
 organization := "org.higherstate"
 
-version := "1.3.1"
+version := "1.3.2"
 
-scalaVersion := "2.12.5"
+scalaVersion := "2.12.10"
 
 scalacOptions ++= Seq(
   "-deprecation",
@@ -22,9 +22,9 @@ scalacOptions ++= Seq(
 javacOptions ++= Seq("-target", "1.8", "-source", "1.8", "-Xlint:deprecation")
 
 libraryDependencies ++= Seq(
-  "org.scala-lang" % "scala-compiler" % "2.12.5",
-  "org.scala-lang" % "scala-reflect" % "2.12.5",
-  "org.typelevel" %% "cats" % "0.9.0",
-  "com.fasterxml.jackson.core" % "jackson-core" % "2.9.5",
+  "org.scala-lang" % "scala-compiler" % "2.12.10",
+  "org.scala-lang" % "scala-reflect" % "2.12.10",
+  "org.typelevel" %% "cats-core"               % "1.6.1",
+  "com.fasterxml.jackson.core" % "jackson-core" % "2.10.0",
   "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 )
