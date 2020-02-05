@@ -1,15 +1,15 @@
 package org.higherstate.jameson
 
+import java.time.format.DateTimeFormatter
+
 import reflect.runtime.universe._
 import org.higherstate.jameson.parsers.Parser
-import org.joda.time.DateTimeZone
-import org.joda.time.format.DateTimeFormatter
+
 
 trait CustomRegistry extends Registry {
 
   implicit val registry:Registry = this
   implicit def dateTimeFormatter:Option[DateTimeFormatter] = _defaultDateTimeFormatter
-  implicit def dateTimeZone:DateTimeZone = _defaultDateTimeZone
 
   private val defaults = new DefaultRegistryValues {}
   private var _defaultClassParser:Map[TypeSymbol, Parser[_]] = defaults.classParsers
@@ -23,7 +23,6 @@ trait CustomRegistry extends Registry {
   private var _defaultNullParser = defaults.defaultNullParser
   private var _defaultAnyRefParser = defaults.defaultAnyRefParser
 
-  private var _defaultDateTimeZone = DefaultRegistry.dateTimeZone
   private var _defaultDateTimeFormatter = DefaultRegistry.dateTimeFormatter
 
   protected def overrideDefaultUnknownParser(parser:Parser[_]):Unit = { _defaultUnknownParser = parser }
@@ -36,7 +35,6 @@ trait CustomRegistry extends Registry {
   protected def overrideDefaultNullParser(parser:Parser[_]):Unit =  { _defaultNullParser = parser}
   protected def overrideDefaultAnyRefParser(parser:Parser[_]):Unit =  { _defaultAnyRefParser = parser}
 
-  protected def overrideDefaultDateTimeZone(dateTimeZone:DateTimeZone):Unit =  { _defaultDateTimeZone = dateTimeZone}
   protected def overrideDefaultDateTimeFormatter(dateTimeFormatter:DateTimeFormatter):Unit = { _defaultDateTimeFormatter = Some(dateTimeFormatter)}
 
   def defaultUnknownParser:Parser[_] = _defaultUnknownParser

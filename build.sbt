@@ -2,7 +2,7 @@ name := "Jameson"
 
 organization := "org.higherstate"
 
-version := "1.3.0"
+version := "1.3.1"
 
 scalaVersion := "2.12.5"
 
@@ -26,7 +26,5 @@ libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-reflect" % "2.12.5",
   "org.typelevel" %% "cats" % "0.9.0",
   "com.fasterxml.jackson.core" % "jackson-core" % "2.9.5",
-  "org.scalatest" %% "scalatest" % "3.0.5" % "test",
-  "joda-time" % "joda-time" % "2.9.9",
-  "org.joda" % "joda-convert" % "2.0.1"
+  "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 )

@@ -1,12 +1,13 @@
 package org.higherstate.jameson
 
+import java.time.format.DateTimeFormatter
+
 import org.higherstate.jameson.parsers._
+
 import reflect.runtime.universe._
 import scala.util.matching.Regex
 import scala.reflect.ClassTag
-import org.joda.time.format.DateTimeFormatter
-import org.joda.time.DateTimeZone
-import org.higherstate.jameson.extractors.{LongRangeExtractor, DoubleRangeExtractor}
+import org.higherstate.jameson.extractors.{DoubleRangeExtractor, LongRangeExtractor}
 
 object SymbolicDsl {
 
@@ -206,6 +207,6 @@ object SymbolicDsl {
   def T[T1,T2,T3, T4](s1:Selector[String, T1], s2:Selector[String, T2], s3:Selector[String, T3], s4:Selector[String, T4]) = Tuple4MapParser(s1, s2, s3, s4)
   def T[T1,T2,T3, T4, T5](s1:Selector[String, T1], s2:Selector[String, T2], s3:Selector[String, T3], s4:Selector[String, T4], s5:Selector[String, T5]) = Tuple5MapParser(s1, s2, s3, s4, s5)
 
-  def AsDateTime(implicit dateTimeFormatter:Option[DateTimeFormatter], dateTimeZone:DateTimeZone):DateTimeParser = DateTimeParser()(dateTimeFormatter, dateTimeZone)
+  def AsDateTime(implicit dateTimeFormatter:Option[DateTimeFormatter]):DateTimeParser = DateTimeParser()(dateTimeFormatter)
   def AsAnyRef[T](implicit classTag:ClassTag[T]) = AnyRefParser[T]
 }

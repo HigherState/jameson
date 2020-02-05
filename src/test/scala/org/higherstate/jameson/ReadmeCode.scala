@@ -3,7 +3,7 @@ package org.higherstate.jameson
 import org.higherstate.jameson.DefaultRegistry._
 import org.higherstate.jameson.Dsl._
 import java.awt.Color
-import org.joda.time.DateTime
+import java.time.LocalDateTime
 import java.util.UUID
 
 class ReadmeCode {
@@ -74,7 +74,7 @@ class ReadmeCode {
   val byteParser = as [Byte]
   val longParser = as [Long]
   val floatParser = as [Float]
-  val jodaDateTimeParser = as [DateTime]
+  val jodaDateTimeParser = as [LocalDateTime]
   val uuidParser = as [UUID]
 
   //parsing a json array to tuple
