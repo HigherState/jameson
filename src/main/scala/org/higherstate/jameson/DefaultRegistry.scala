@@ -1,5 +1,6 @@
 package org.higherstate.jameson
 
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 import parsers._
@@ -11,6 +12,7 @@ import java.util.UUID
 object DefaultRegistry {
   implicit val registry:Registry = new DefaultRegistryValues {}
   implicit val dateTimeFormatter:Option[DateTimeFormatter] = None
+  implicit val dateTimeZone:ZoneOffset = ZoneOffset.UTC
 }
 
 trait DefaultRegistryValues extends Registry {
